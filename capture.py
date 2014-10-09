@@ -1,53 +1,101 @@
-"""Maya Capture
+"""Playblasting with independent viewport, camera and display options"""
 
-Playblast with independent viewport, camera and display options.
+version_info = (0, 1, 0)
 
-With a regular Maya playblast, playblasting is dependent on
-the size of your panel and provides no options for specifying
-what to include or exclude, such as meshes or curves. Maya
-Capture isolates a capture into an independent panel in which
-settings may be applied without affecting your current scene or
-workspace.
+__author__ = "Marcus Ottosson"
+__version__ = "%s.%s.%s" % version_info
+__license__ = "MIT"
 
-Structs:
-    Rather than providing individual flags for the large amount
-    of options provided by the viewport, camera and display,
-    they are instead provided via an individual object, a.k.a.
-    "struct". To use, instantiate an option-object, set some
-    attributes, and pass the object as an argument to :func:`capture`.
-
-Example:
-    >> capture()
-    >>
-    >> # Capture multiple cameras
-    >> capture('Camera1')
-    >> capture('Camera2')
-    >> capture('Camera3')
-    >>
-    >> # Capture with custom resolution
-    >> capture(width=400, height=200)
-    >>
-    >> # Launch capture with custom viewport settings
-    >> view_opts = ViewportOptions()
-    >> view_opts.grid = False
-    >> view_opts.polymeshes = True
-    >> view_opts.displayAppearance = "wireframe"
-    >> cam_opts = CameraOptions()
-    >> cam_opts.displayResolution = True
-    >> capture('myCamera', 800, 600,
-    ..         viewport_options=view_opts,
-    ..         camera_options=cam_opts)
-
-.. todo:: Currently missing, variable background color.
-.. todo:: When not supplying any viewport options, grab
-    options from the currently active view.
-
-"""
 
 import sys
 import contextlib
 
-from maya import cmds
+
+def capture(camera=None,
+            width=None,
+            height=None,
+            filename=None,
+            start_frame=None,
+            end_frame=None,
+            format='qt',
+            compression='h264',
+            off_screen=False,
+            viewer=True,
+            isolate=None,
+            maintain_aspect_ratio=True,
+            camera_options=None,
+            viewport_options=None):
+    """Playblast in an independent panel
+
+    Arguments:
+        camera (str, optional): Name of camera, defaults to "persp"
+        width (int, optional): Width of output in pixels
+        height (int, optional): Height of output in pixels
+        filename (str, optional): Name of output file. If
+            none is specified, no files are saved.
+        start_frame (float, optional): Defaults to current start frame.
+        end_frame (float, optional): Defaults to current end frame.
+        format (str, optional): Name of format, defaults to "qt".
+        compression (str, optional): Name of compression, defaults to "h264"
+        off_screen (bool, optional): Whether or not to playblast off screen
+        viewer (bool, optional): Display results in native player
+        isolate (list): List of nodes to isolate upon capturing
+        maintain_aspect_ratio (bool, optional): Modify height in order to
+            maintain aspect ratio.
+        camera_options (CameraOptions, optional): Supplied camera options,
+            using :class:`CameraOptions`
+        viewport_options (ViewportOptions, optional): Supplied viewport
+            options, using :class:`ViewportOptions`
+
+    Example:
+        >>> # Launch default capture
+        >>> capture()
+        >>> # Launch capture with custom viewport settings
+        >>> view_opts = ViewportOptions()
+        >>> view_opts.grid = False
+        >>> view_opts.polymeshes = True
+        >>> view_opts.displayAppearance = "wireframe"
+        >>> cam_opts = CameraOptions()
+        >>> cam_opts.displayResolution = True
+        >>> capture('myCamera', 800, 600,
+        ...         viewport_options=view_opts,
+        ...         camera_options=cam_opts)
+
+    """
+
+    from maya import cmds
+
+    camera = camera or "persp"
+    width = width or cmds.getAttr("defaultResolution.width")
+    height = height or cmds.getAttr("defaultResolution.height")
+    start_frame = start_frame or cmds.playbackOptions(minTime=True, query=True)
+    end_frame = end_frame or cmds.playbackOptions(maxTime=True, query=True)
+
+    with _independent_panel(
+            width=width,
+            height=height,
+            maintain_aspect_ratio=maintain_aspect_ratio) as panel:
+
+        cmds.lookThru(panel, camera)
+        cmds.setFocus(panel)
+
+        assert panel in cmds.playblast(activeEditor=True)
+
+        with _applied_viewport_options(viewport_options, panel):
+            with _applied_camera_options(camera_options, panel, camera):
+                with _isolated_nodes(isolate, panel):
+                    output = cmds.playblast(
+                        compression=compression,
+                        format=format,
+                        percent=100,
+                        quality=100,
+                        viewer=viewer,
+                        startTime=start_frame,
+                        endTime=end_frame,
+                        filename=filename,
+                        offScreen=off_screen)
+
+        return output
 
 
 class ViewportOptions:
@@ -117,94 +165,8 @@ def _parse_options(options):
     return opts
 
 
-def capture(camera=None,
-            width=None,
-            height=None,
-            filename=None,
-            start_frame=None,
-            end_frame=None,
-            format='qt',
-            compression='h264',
-            off_screen=False,
-            viewer=True,
-            isolate=None,
-            maintain_aspect_ratio=True,
-            camera_options=None,
-            viewport_options=None):
-    """Playblast in an independent panel
-
-    Arguments:
-        camera (str, optional): Name of camera, defaults to "persp"
-        width (int, optional): Width of output in pixels
-        height (int, optional): Height of output in pixels
-        filename (str, optional): Name of output file. If
-            none is specified, no files are saved.
-        start_frame (float, optional): Defaults to current start frame.
-        end_frame (float, optional): Defaults to current end frame.
-        format (str, optional): Name of format, defaults to "qt".
-        compression (str, optional): Name of compression, defaults to "h264"
-        off_screen (bool, optional): Whether or not to playblast off screen
-        viewer (bool, optional): Display results in native player
-        isolate (list): List of nodes to isolate upon capturing
-        maintain_aspect_ratio (bool, optional): Modify height in order to
-            maintain aspect ratio.
-        camera_options (CameraOptions, optional): Supplied camera options,
-            using :class:`CameraOptions`
-        viewport_options (ViewportOptions, optional): Supplied viewport
-            options, using :class:`ViewportOptions`
-
-    Example:
-        >> # Launch default capture
-        >> capture()
-
-        >> # Launch capture with custom viewport settings
-        >> view_opts = ViewportOptions()
-        >> view_opts.grid = False
-        >> view_opts.polymeshes = True
-        >> view_opts.displayAppearance = "wireframe"
-        >> cam_opts = CameraOptions()
-        >> cam_opts.displayResolution = True
-        >> capture('myCamera', 800, 600,
-        ..           viewport_options=view_opts,
-        ..           camera_options=cam_opts)
-
-    """
-
-    camera = camera or "persp"
-    width = width or cmds.getAttr("defaultResolution.width")
-    height = height or cmds.getAttr("defaultResolution.height")
-    start_frame = start_frame or cmds.playbackOptions(minTime=True, query=True)
-    end_frame = end_frame or cmds.playbackOptions(maxTime=True, query=True)
-
-    with independent_panel(
-            width=width,
-            height=height,
-            maintain_aspect_ratio=maintain_aspect_ratio) as panel:
-
-        cmds.lookThru(panel, camera)
-        cmds.setFocus(panel)
-
-        assert panel in cmds.playblast(activeEditor=True)
-
-        with applied_viewport_options(viewport_options, panel):
-            with applied_camera_options(camera_options, panel, camera):
-                with isolated_nodes(isolate, panel):
-                    output = cmds.playblast(
-                        compression=compression,
-                        format=format,
-                        percent=100,
-                        quality=100,
-                        viewer=viewer,
-                        startTime=start_frame,
-                        endTime=end_frame,
-                        filename=filename,
-                        offScreen=off_screen)
-
-        return output
-
-
 @contextlib.contextmanager
-def independent_panel(width, height, maintain_aspect_ratio=True):
+def _independent_panel(width, height, maintain_aspect_ratio=True):
     """Create capture-window context without decorations
 
     Arguments:
@@ -214,10 +176,12 @@ def independent_panel(width, height, maintain_aspect_ratio=True):
             maintain aspect ratio.
 
     Example:
-        >> with independent_panel(800, 600):
-        ..   cmds.capture()
+        >>> with _independent_panel(800, 600):
+        ...   cmds.capture()
 
     """
+
+    from maya import cmds
 
     if maintain_aspect_ratio:
         ratio = cmds.getAttr("defaultResolution.deviceAspectRatio")
@@ -249,8 +213,11 @@ def independent_panel(width, height, maintain_aspect_ratio=True):
 
 
 @contextlib.contextmanager
-def applied_viewport_options(options, panel):
+def _applied_viewport_options(options, panel):
     """Context manager for applying `options` to `panel`"""
+
+    from maya import cmds
+
     if options is not None:
         options = _parse_options(options)
         cmds.modelEditor(panel,
@@ -264,8 +231,11 @@ def applied_viewport_options(options, panel):
 
 
 @contextlib.contextmanager
-def applied_camera_options(options, panel, camera):
+def _applied_camera_options(options, panel, camera):
     """Context manager for applying `options` to `camera`"""
+
+    from maya import cmds
+
     old_options = None
 
     if options is not None:
@@ -286,16 +256,16 @@ def applied_camera_options(options, panel, camera):
     try:
         yield
     finally:
-        if not old_options:
-            return
-
-        for opt, value in old_options.iteritems():
-            cmds.setAttr(camera + "." + opt, value)
+        if old_options:
+            for opt, value in old_options.iteritems():
+                cmds.setAttr(camera + "." + opt, value)
 
 
 @contextlib.contextmanager
-def isolated_nodes(nodes, panel):
+def _isolated_nodes(nodes, panel):
     """Context manager for isolating `nodes` in `panel`"""
+    from maya import cmds
+
     if nodes is not None:
         cmds.isolateSelect(panel, state=True)
         for obj in nodes:

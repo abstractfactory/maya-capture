@@ -12,6 +12,8 @@ to which panel is currently in focus.
 
 ### Usage
 
+To install, download capture.py and place it in a directory where Maya can find it.
+
 ###### Capture perspective camera and display results
 
 ```python
