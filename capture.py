@@ -108,7 +108,7 @@ class ViewportOptions:
     # Visibility flags
     nurbsCurves = False
     nurbsSurfaces = False
-    polymeshes = False
+    polymeshes = True
     subdivSurfaces = False
     cameras = False
     lights = False
@@ -218,14 +218,14 @@ def _applied_viewport_options(options, panel):
 
     from maya import cmds
 
-    if options is not None:
-        options = _parse_options(options)
-        cmds.modelEditor(panel,
-                         edit=True,
-                         allObjects=False,
-                         grid=False,
-                         manipulators=False)
-        cmds.modelEditor(panel, edit=True, **options)
+    options = options = ViewportOptions()
+    options = _parse_options(options)
+    cmds.modelEditor(panel,
+                     edit=True,
+                     allObjects=False,
+                     grid=False,
+                     manipulators=False)
+    cmds.modelEditor(panel, edit=True, **options)
 
     yield
 
