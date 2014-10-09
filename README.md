@@ -1,3 +1,5 @@
+![](docs/images/demo.gif)
+
 ### Playblasting in Maya done right
 
 Playblast with independent viewport, camera and display options.
