@@ -20,7 +20,9 @@ settings may be applied without affecting your current scene or
 workspace. It also playblasts the given camera, without regard
 to which panel is currently in focus.
 
-To install, download capture.py and place it in a directory where Maya can find it.
+To install, download [capture.py][] and place it in a directory where Maya can find it.
+
+[capture.py]: https://raw.githubusercontent.com/mottosso/maya-capture/master/capture.py
 
 ### Examples
 
