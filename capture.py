@@ -78,6 +78,13 @@ def capture(camera=None,
     start_frame = start_frame or cmds.playbackOptions(minTime=True, query=True)
     end_frame = end_frame or cmds.playbackOptions(maxTime=True, query=True)
 
+    # We need to wrap `completeFilename`, otherwise even when None is provided
+    # it will use filename as the exact name. Only when lacking as argument
+    # does it function correctly.
+    playblast_kwargs = dict()
+    if complete_filename:
+        playblast_kwargs['completeFilename'] = complete_filename
+
     with _independent_panel(
             width=width,
             height=height,
@@ -102,7 +109,7 @@ def capture(camera=None,
                         offScreen=off_screen,
                         forceOverwrite=overwrite,
                         filename=filename,
-                        completeFilename=complete_filename)
+                        **playblast_kwargs)
 
         return output
 
@@ -128,18 +135,13 @@ def snap(*args, **kwargs):
     kwargs['start_frame'] = frame
     kwargs['end_frame'] = frame
 
-    # ensure we use `complete_filename` parameter so we save under exact name
-    # instead of having the frame number padded into it.
-    kwargs['complete_filename'] = kwargs.pop('complete_filename',
-                                             kwargs.pop('filename', None))
-
     # override capture defaults
     format = kwargs.pop('format', "image")
     compression = kwargs.pop('compression', "png")
     kwargs['compression'] = compression
     kwargs['format'] = format
 
-    capture(*args, **kwargs)
+    return capture(*args, **kwargs)
 
 
 class ViewportOptions:
