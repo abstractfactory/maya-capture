@@ -25,7 +25,8 @@ def capture(camera=None,
             maintain_aspect_ratio=True,
             overwrite=False,
             camera_options=None,
-            viewport_options=None):
+            viewport_options=None,
+            complete_filename=None):
     """Playblast in an independent panel
 
     Arguments:
@@ -50,6 +51,8 @@ def capture(camera=None,
             using :class:`CameraOptions`
         viewport_options (ViewportOptions, optional): Supplied viewport
             options, using :class:`ViewportOptions`
+        complete_filename (str, optional): Exact name of output file. Use this
+            to override the output of `filename` so it excludes frame padding.
 
     Example:
         >>> # Launch default capture
@@ -68,6 +71,14 @@ def capture(camera=None,
     """
 
     from maya import cmds
+
+    playblast_kwargs = dict()
+    if complete_filename is not None:
+        playblast_kwargs['completeFilename'] = complete_filename
+        playblast_kwargs['filename'] = filename
+    else:
+        playblast_kwargs['filename'] = filename
+
 
     camera = camera or "persp"
     width = width or cmds.getAttr("defaultResolution.width")
@@ -96,11 +107,46 @@ def capture(camera=None,
                         viewer=viewer,
                         startTime=start_frame,
                         endTime=end_frame,
-                        filename=filename,
                         offScreen=off_screen,
-                        forceOverwrite=overwrite)
+                        forceOverwrite=overwrite,
+                        **playblast_kwargs)
 
         return output
+
+
+def snap(*args, **kwargs):
+    """Single frame playblast in an independent panel.
+
+    The arguments of `capture` are all valid here as well, except for
+    `start_frame` and `end_frame`.
+
+    Arguments:
+        frame (float, optional): The frame to snap. If not provided current
+            frame is used.
+
+    Keywords:
+        See `capture`.
+    """
+
+    from maya import cmds
+
+    # capture single frame
+    frame = kwargs.pop('frame', cmds.currentTime(q=1))
+    kwargs['start_frame'] = frame
+    kwargs['end_frame'] = frame
+
+    # ensure we use `complete_filename` parameter so we save under exact name
+    # instead of having the frame number padded into it.
+    kwargs['complete_filename'] = kwargs.pop('complete_filename',
+                                             kwargs.pop('filename', None))
+
+    # override capture defaults
+    format = kwargs.pop('format', "image")
+    compression = kwargs.pop('compression', "png")
+    kwargs['compression'] = compression
+    kwargs['format'] = format
+
+    capture(*args, **kwargs)
 
 
 class ViewportOptions:
