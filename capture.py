@@ -72,14 +72,6 @@ def capture(camera=None,
 
     from maya import cmds
 
-    playblast_kwargs = dict()
-    if complete_filename is not None:
-        playblast_kwargs['completeFilename'] = complete_filename
-        playblast_kwargs['filename'] = filename
-    else:
-        playblast_kwargs['filename'] = filename
-
-
     camera = camera or "persp"
     width = width or cmds.getAttr("defaultResolution.width")
     height = height or cmds.getAttr("defaultResolution.height")
@@ -109,7 +101,8 @@ def capture(camera=None,
                         endTime=end_frame,
                         offScreen=off_screen,
                         forceOverwrite=overwrite,
-                        **playblast_kwargs)
+                        filename=filename,
+                        completeFilename=complete_filename)
 
         return output
 
