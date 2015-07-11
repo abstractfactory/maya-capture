@@ -23,6 +23,7 @@ def capture(camera=None,
             viewer=True,
             isolate=None,
             maintain_aspect_ratio=True,
+            overwrite=False,
             camera_options=None,
             viewport_options=None):
     """Playblast in an independent panel
@@ -42,6 +43,9 @@ def capture(camera=None,
         isolate (list): List of nodes to isolate upon capturing
         maintain_aspect_ratio (bool, optional): Modify height in order to
             maintain aspect ratio.
+        overwrite (bool, optional): Whether or not to overwrite if file
+            already exists. If disabled and file exists and error will be
+            raised.
         camera_options (CameraOptions, optional): Supplied camera options,
             using :class:`CameraOptions`
         viewport_options (ViewportOptions, optional): Supplied viewport
@@ -93,7 +97,8 @@ def capture(camera=None,
                         startTime=start_frame,
                         endTime=end_frame,
                         filename=filename,
-                        offScreen=off_screen)
+                        offScreen=off_screen,
+                        forceOverwrite=overwrite)
 
         return output
 
@@ -218,8 +223,9 @@ def _applied_viewport_options(options, panel):
 
     from maya import cmds
 
-    options = options = ViewportOptions()
+    options = options or ViewportOptions()
     options = _parse_options(options)
+    print options
     cmds.modelEditor(panel,
                      edit=True,
                      allObjects=False,
