@@ -2,7 +2,6 @@
 
 version_info = (0, 1, 0)
 
-__author__ = "Marcus Ottosson"
 __version__ = "%s.%s.%s" % version_info
 __license__ = "MIT"
 
