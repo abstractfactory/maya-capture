@@ -9,7 +9,6 @@ __license__ = "MIT"
 import sys
 import contextlib
 import re
-import itertools
 
 
 def capture(camera=None,
