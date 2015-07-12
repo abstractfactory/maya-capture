@@ -85,6 +85,11 @@ def capture(camera=None,
     from maya import cmds
 
     camera = camera or "persp"
+
+    # Ensure camera exists
+    if not cmds.objExists(camera):
+        raise RuntimeError("Camera does not exist: {0}".format(camera))
+
     width = width or cmds.getAttr("defaultResolution.width")
     height = height or cmds.getAttr("defaultResolution.height")
     start_frame = start_frame or cmds.playbackOptions(minTime=True, query=True)
