@@ -138,8 +138,10 @@ def snap(*args, **kwargs):
     # override capture defaults
     format = kwargs.pop('format', "image")
     compression = kwargs.pop('compression', "png")
+    viewer = kwargs.pop('viewer', False)
     kwargs['compression'] = compression
     kwargs['format'] = format
+    kwargs['viewer'] = viewer
 
     return capture(*args, **kwargs)
 
