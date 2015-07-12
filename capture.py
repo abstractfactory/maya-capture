@@ -9,7 +9,6 @@ __license__ = "MIT"
 import sys
 import contextlib
 import re
-import itertools
 
 
 def capture(camera=None,
@@ -29,6 +28,7 @@ def capture(camera=None,
             raw_frame_numbers=False,
             camera_options=None,
             viewport_options=None,
+            display_options=None,
             complete_filename=None):
     """Playblast in an independent panel
 
@@ -61,6 +61,8 @@ def capture(camera=None,
             using :class:`CameraOptions`
         viewport_options (ViewportOptions, optional): Supplied viewport
             options, using :class:`ViewportOptions`
+        display_options (DisplayOptions, optional): Supplied display
+            options, using :class:`DisplayOptions`
         complete_filename (str, optional): Exact name of output file. Use this
             to override the output of `filename` so it excludes frame padding.
 
@@ -83,6 +85,11 @@ def capture(camera=None,
     from maya import cmds
 
     camera = camera or "persp"
+
+    # Ensure camera exists
+    if not cmds.objExists(camera):
+        raise RuntimeError("Camera does not exist: {0}".format(camera))
+
     width = width or cmds.getAttr("defaultResolution.width")
     height = height or cmds.getAttr("defaultResolution.height")
     start_frame = start_frame or cmds.playbackOptions(minTime=True, query=True)
@@ -109,20 +116,21 @@ def capture(camera=None,
 
         with _applied_viewport_options(viewport_options, panel):
             with _applied_camera_options(camera_options, panel, camera):
-                with _isolated_nodes(isolate, panel):
-                    output = cmds.playblast(
-                        compression=compression,
-                        format=format,
-                        percent=100,
-                        quality=100,
-                        viewer=viewer,
-                        startTime=start_frame,
-                        endTime=end_frame,
-                        offScreen=off_screen,
-                        forceOverwrite=overwrite,
-                        filename=filename,
-                        rawFrameNumbers=raw_frame_numbers,
-                        **playblast_kwargs)
+                with _applied_display_options(display_options):
+                    with _isolated_nodes(isolate, panel):
+                        output = cmds.playblast(
+                            compression=compression,
+                            format=format,
+                            percent=100,
+                            quality=100,
+                            viewer=viewer,
+                            startTime=start_frame,
+                            endTime=end_frame,
+                            offScreen=off_screen,
+                            forceOverwrite=overwrite,
+                            filename=filename,
+                            rawFrameNumbers=raw_frame_numbers,
+                            **playblast_kwargs)
 
         return output
 
@@ -227,6 +235,10 @@ class DisplayOptions:
     display-related options.
 
     """
+    displayGradient = True
+    background = (0.631, 0.631, 0.631)
+    backgroundTop = (0.535, 0.617, 0.702)
+    backgroundBottom = (0.052, 0.052, 0.052)
 
 
 def _parse_options(options):
@@ -266,7 +278,8 @@ def _independent_panel(width, height, maintain_aspect_ratio=True):
                          menuBarVisible=False,
                          titleBar=False)
     cmds.paneLayout()
-    panel = cmds.modelPanel(menuBarVisible=False)
+    panel = cmds.modelPanel(menuBarVisible=False,
+                            label='CapturePanel')
 
     # Hide icons under panel menus
     bar_layout = cmds.modelPanel(panel, q=True, barLayout=True)
@@ -274,16 +287,21 @@ def _independent_panel(width, height, maintain_aspect_ratio=True):
 
     cmds.showWindow(window)
 
+    # Set the modelEditor of the modelPanel as the active view so it takes
+    # the playback focus. Does seem redundant with the `refresh` added in.
+    editor = cmds.modelPanel(panel, query=True, modelEditor=True)
+    cmds.modelEditor(editor, e=1, activeView=True)
+
+    # Force a draw refresh of Maya so it keeps focus on the new panel
+    # This focus is required to force preview playback in the independent panel
+    cmds.refresh(force=True)
+
     try:
         yield panel
     finally:
-        # Ensure window always closes
-        # .. note:: We hide, rather than delete as deleting
-        #   causes the focus to shift during capture of multiple
-        #   cameras immediately after one another. Altering the
-        #   visibility doesn't seem to have this effect, it does
-        #   however come at a cost to RAM of about 5 mb per capture.
-        cmds.window(window, edit=True, visible=False)
+        # Delete the panel to fix memory leak (about 5 mb per capture)
+        cmds.deleteUI(panel, panel=True)
+        cmds.deleteUI(window)
 
 
 @contextlib.contextmanager
@@ -333,6 +351,40 @@ def _applied_camera_options(options, panel, camera):
         if old_options:
             for opt, value in old_options.iteritems():
                 cmds.setAttr(camera + "." + opt, value)
+
+
+@contextlib.contextmanager
+def _applied_display_options(options):
+    """Context manager for setting background color display options."""
+    from maya import cmds
+
+    options = options or DisplayOptions()
+
+    colors = ['background', 'backgroundTop', 'backgroundBottom']
+    prefs = ['displayGradient']
+
+    # store current settings
+    original = {}
+    for clr in colors:
+        original[clr] = cmds.displayRGBColor(clr, query=True)
+    for pref in prefs:
+        original[pref] = cmds.displayPref(query=True, **{pref: True})
+
+    # apply settings of options
+    for clr in colors:
+        value = getattr(options, clr)
+        cmds.displayRGBColor(clr, *value)
+    for pref in prefs:
+        value = getattr(options, pref)
+        cmds.displayPref(**{pref: value})
+
+    yield
+
+    # restore original settings
+    for clr in colors:
+        cmds.displayRGBColor(clr, *original[clr])
+    for pref in prefs:
+        cmds.displayPref(**{pref: original[pref]})
 
 
 @contextlib.contextmanager
