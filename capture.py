@@ -9,6 +9,7 @@ __license__ = "MIT"
 
 import sys
 import contextlib
+import re
 
 
 def capture(camera=None,
@@ -143,7 +144,13 @@ def snap(*args, **kwargs):
     kwargs['format'] = format
     kwargs['viewer'] = viewer
 
-    return capture(*args, **kwargs)
+    output = capture(*args, **kwargs)
+
+    # substitute any # in the output to the actual frame number
+    replace = lambda m: str(frame).zfill(len(m.group()))
+    output = re.sub("#+", replace, output)
+
+    return output
 
 
 class ViewportOptions:
