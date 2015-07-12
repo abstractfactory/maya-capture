@@ -8,6 +8,8 @@ __license__ = "MIT"
 
 import sys
 import contextlib
+import re
+import itertools
 
 
 def capture(camera=None,
@@ -16,6 +18,7 @@ def capture(camera=None,
             filename=None,
             start_frame=None,
             end_frame=None,
+            frame=None,
             format='qt',
             compression='h264',
             off_screen=False,
@@ -23,8 +26,10 @@ def capture(camera=None,
             isolate=None,
             maintain_aspect_ratio=True,
             overwrite=False,
+            raw_frame_numbers=False,
             camera_options=None,
-            viewport_options=None):
+            viewport_options=None,
+            complete_filename=None):
     """Playblast in an independent panel
 
     Arguments:
@@ -35,6 +40,9 @@ def capture(camera=None,
             none is specified, no files are saved.
         start_frame (float, optional): Defaults to current start frame.
         end_frame (float, optional): Defaults to current end frame.
+        frame (float or tuple, optional): A single frame or list of frames.
+            Use this to capture a single frame or an arbitrary sequence of
+            frames.
         format (str, optional): Name of format, defaults to "qt".
         compression (str, optional): Name of compression, defaults to "h264"
         off_screen (bool, optional): Whether or not to playblast off screen
@@ -45,10 +53,16 @@ def capture(camera=None,
         overwrite (bool, optional): Whether or not to overwrite if file
             already exists. If disabled and file exists and error will be
             raised.
+        raw_frame_numbers (bool, optional): Whether or not to use the exact
+            frame numbers from the scene or capture to a sequence starting at
+            zero. Defaults to False. When set to True `viewer` can't be used
+            and will be forced to False.
         camera_options (CameraOptions, optional): Supplied camera options,
             using :class:`CameraOptions`
         viewport_options (ViewportOptions, optional): Supplied viewport
             options, using :class:`ViewportOptions`
+        complete_filename (str, optional): Exact name of output file. Use this
+            to override the output of `filename` so it excludes frame padding.
 
     Example:
         >>> # Launch default capture
@@ -74,6 +88,13 @@ def capture(camera=None,
     start_frame = start_frame or cmds.playbackOptions(minTime=True, query=True)
     end_frame = end_frame or cmds.playbackOptions(maxTime=True, query=True)
 
+    # We need to wrap `completeFilename`, otherwise even when None is provided
+    # it will use filename as the exact name. Only when lacking as argument
+    # does it function correctly.
+    playblast_kwargs = dict()
+    if complete_filename:
+        playblast_kwargs['completeFilename'] = complete_filename
+
     with _independent_panel(
             width=width,
             height=height,
@@ -95,11 +116,54 @@ def capture(camera=None,
                         viewer=viewer,
                         startTime=start_frame,
                         endTime=end_frame,
-                        filename=filename,
+                        frame=frame,
                         offScreen=off_screen,
-                        forceOverwrite=overwrite)
+                        forceOverwrite=overwrite,
+                        filename=filename,
+                        rawFrameNumbers=raw_frame_numbers,
+                        **playblast_kwargs)
 
         return output
+
+
+def snap(*args, **kwargs):
+    """Single frame playblast in an independent panel.
+
+    The arguments of `capture` are all valid here as well, except for
+    `start_frame` and `end_frame`.
+
+    Arguments:
+        frame (float, optional): The frame to snap. If not provided current
+            frame is used.
+
+    Keywords:
+        See `capture`.
+    """
+
+    from maya import cmds
+
+    # capture single frame
+    frame = kwargs.pop('frame', cmds.currentTime(q=1))
+    kwargs['start_frame'] = frame
+    kwargs['end_frame'] = frame
+
+    # override capture defaults
+    format = kwargs.pop('format', "image")
+    compression = kwargs.pop('compression', "png")
+    viewer = kwargs.pop('viewer', False)
+    raw_frame_numbers = kwargs.pop('raw_frame_numbers', True)
+    kwargs['compression'] = compression
+    kwargs['format'] = format
+    kwargs['viewer'] = viewer
+    kwargs['raw_frame_numbers'] = raw_frame_numbers
+
+    output = capture(*args, **kwargs)
+
+    # substitute any # in the output to the actual frame number
+    replace = lambda m: str(frame).zfill(len(m.group()))
+    output = re.sub("#+", replace, output)
+
+    return output
 
 
 class ViewportOptions:
