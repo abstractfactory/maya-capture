@@ -289,7 +289,6 @@ def _applied_viewport_options(options, panel):
 
     options = options or ViewportOptions()
     options = _parse_options(options)
-    print options
     cmds.modelEditor(panel,
                      edit=True,
                      allObjects=False,
