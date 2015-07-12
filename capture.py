@@ -94,6 +94,8 @@ def capture(camera=None,
     playblast_kwargs = dict()
     if complete_filename:
         playblast_kwargs['completeFilename'] = complete_filename
+    if frame:
+        playblast_kwargs['frame'] = frame
 
     with _independent_panel(
             width=width,
@@ -116,7 +118,6 @@ def capture(camera=None,
                         viewer=viewer,
                         startTime=start_frame,
                         endTime=end_frame,
-                        frame=frame,
                         offScreen=off_screen,
                         forceOverwrite=overwrite,
                         filename=filename,
@@ -146,6 +147,11 @@ def snap(*args, **kwargs):
     frame = kwargs.pop('frame', cmds.currentTime(q=1))
     kwargs['start_frame'] = frame
     kwargs['end_frame'] = frame
+    kwargs['frame'] = frame
+
+    if not isinstance(frame, (int, float)):
+        raise TypeError("frame must be a single frame (integer or float). "
+                        "Use `capture()` for sequences.")
 
     # override capture defaults
     format = kwargs.pop('format', "image")
@@ -288,7 +294,6 @@ def _applied_viewport_options(options, panel):
 
     options = options or ViewportOptions()
     options = _parse_options(options)
-    print options
     cmds.modelEditor(panel,
                      edit=True,
                      allObjects=False,
