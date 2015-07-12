@@ -148,6 +148,11 @@ def snap(*args, **kwargs):
     frame = kwargs.pop('frame', cmds.currentTime(q=1))
     kwargs['start_frame'] = frame
     kwargs['end_frame'] = frame
+    kwargs['frame'] = frame
+
+    if not isinstance(frame, (int, float)):
+        raise TypeError("frame must be a single frame (integer or float). "
+                        "Use `capture()` for sequences.")
 
     # override capture defaults
     format = kwargs.pop('format', "image")
