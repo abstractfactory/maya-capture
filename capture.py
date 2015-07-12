@@ -278,7 +278,8 @@ def _independent_panel(width, height, maintain_aspect_ratio=True):
                          menuBarVisible=False,
                          titleBar=False)
     cmds.paneLayout()
-    panel = cmds.modelPanel(menuBarVisible=False)
+    panel = cmds.modelPanel(menuBarVisible=False,
+                            label='CapturePanel')
 
     # Hide icons under panel menus
     bar_layout = cmds.modelPanel(panel, q=True, barLayout=True)
@@ -286,16 +287,21 @@ def _independent_panel(width, height, maintain_aspect_ratio=True):
 
     cmds.showWindow(window)
 
+    # Set the modelEditor of the modelPanel as the active view so it takes
+    # the playback focus. Does seem redundant with the `refresh` added in.
+    editor = cmds.modelPanel(panel, query=True, modelEditor=True)
+    cmds.modelEditor(editor, e=1, activeView=True)
+
+    # Force a draw refresh of Maya so it keeps focus on the new panel
+    # This focus is required to force preview playback in the independent panel
+    cmds.refresh(force=True)
+
     try:
         yield panel
     finally:
-        # Ensure window always closes
-        # .. note:: We hide, rather than delete as deleting
-        #   causes the focus to shift during capture of multiple
-        #   cameras immediately after one another. Altering the
-        #   visibility doesn't seem to have this effect, it does
-        #   however come at a cost to RAM of about 5 mb per capture.
-        cmds.window(window, edit=True, visible=False)
+        # Delete the panel to fix memory leak (about 5 mb per capture)
+        cmds.deleteUI(panel, panel=True)
+        cmds.deleteUI(window)
 
 
 @contextlib.contextmanager
