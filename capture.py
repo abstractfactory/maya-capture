@@ -10,6 +10,7 @@ __license__ = "MIT"
 import sys
 import contextlib
 import re
+import itertools
 
 
 def capture(camera=None,
@@ -18,6 +19,7 @@ def capture(camera=None,
             filename=None,
             start_frame=None,
             end_frame=None,
+            frame=None,
             format='qt',
             compression='h264',
             off_screen=False,
@@ -25,6 +27,7 @@ def capture(camera=None,
             isolate=None,
             maintain_aspect_ratio=True,
             overwrite=False,
+            raw_frame_numbers=False,
             camera_options=None,
             viewport_options=None,
             complete_filename=None):
@@ -38,6 +41,9 @@ def capture(camera=None,
             none is specified, no files are saved.
         start_frame (float, optional): Defaults to current start frame.
         end_frame (float, optional): Defaults to current end frame.
+        frame (float or tuple, optional): A single frame, tuple of frames or
+            frame ranges. This can be used to capture a single frame or an
+            arbitrary sequence of frames.
         format (str, optional): Name of format, defaults to "qt".
         compression (str, optional): Name of compression, defaults to "h264"
         off_screen (bool, optional): Whether or not to playblast off screen
@@ -48,6 +54,10 @@ def capture(camera=None,
         overwrite (bool, optional): Whether or not to overwrite if file
             already exists. If disabled and file exists and error will be
             raised.
+        raw_frame_numbers (bool, optional): Whether or not to use the exact
+            frame numbers from the scene or capture to a sequence starting at
+            zero. Defaults to False. When set to True `viewer` can't be used
+            and will be forced to False.
         camera_options (CameraOptions, optional): Supplied camera options,
             using :class:`CameraOptions`
         viewport_options (ViewportOptions, optional): Supplied viewport
@@ -79,6 +89,14 @@ def capture(camera=None,
     start_frame = start_frame or cmds.playbackOptions(minTime=True, query=True)
     end_frame = end_frame or cmds.playbackOptions(maxTime=True, query=True)
 
+    # Ensure frame sequences is flattened list if list is provided
+    if frame is not None:
+        if isinstance(frame, (list, tuple)):
+            iterable = ([x] if isinstance(x, (float, int)) else x
+                        for x in frame)
+            frame = list(itertools.chain.from_iterable(iterable))
+            print frame
+
     # We need to wrap `completeFilename`, otherwise even when None is provided
     # it will use filename as the exact name. Only when lacking as argument
     # does it function correctly.
@@ -107,9 +125,11 @@ def capture(camera=None,
                         viewer=viewer,
                         startTime=start_frame,
                         endTime=end_frame,
+                        frame=frame,
                         offScreen=off_screen,
                         forceOverwrite=overwrite,
                         filename=filename,
+                        rawFrameNumbers=raw_frame_numbers,
                         **playblast_kwargs)
 
         return output
@@ -140,9 +160,11 @@ def snap(*args, **kwargs):
     format = kwargs.pop('format', "image")
     compression = kwargs.pop('compression', "png")
     viewer = kwargs.pop('viewer', False)
+    raw_frame_numbers = kwargs.pop('raw_frame_numbers', True)
     kwargs['compression'] = compression
     kwargs['format'] = format
     kwargs['viewer'] = viewer
+    kwargs['raw_frame_numbers'] = raw_frame_numbers
 
     output = capture(*args, **kwargs)
 
