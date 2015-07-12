@@ -95,6 +95,8 @@ def capture(camera=None,
     playblast_kwargs = dict()
     if complete_filename:
         playblast_kwargs['completeFilename'] = complete_filename
+    if frame:
+        playblast_kwargs['frame'] = frame
 
     with _independent_panel(
             width=width,
@@ -117,7 +119,6 @@ def capture(camera=None,
                         viewer=viewer,
                         startTime=start_frame,
                         endTime=end_frame,
-                        frame=frame,
                         offScreen=off_screen,
                         forceOverwrite=overwrite,
                         filename=filename,
