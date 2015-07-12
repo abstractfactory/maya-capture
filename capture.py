@@ -30,6 +30,7 @@ def capture(camera=None,
             raw_frame_numbers=False,
             camera_options=None,
             viewport_options=None,
+            display_options=None,
             complete_filename=None):
     """Playblast in an independent panel
 
@@ -62,6 +63,8 @@ def capture(camera=None,
             using :class:`CameraOptions`
         viewport_options (ViewportOptions, optional): Supplied viewport
             options, using :class:`ViewportOptions`
+        display_options (DisplayOptions, optional): Supplied display
+            options, using :class:`DisplayOptions`
         complete_filename (str, optional): Exact name of output file. Use this
             to override the output of `filename` so it excludes frame padding.
 
@@ -110,20 +113,21 @@ def capture(camera=None,
 
         with _applied_viewport_options(viewport_options, panel):
             with _applied_camera_options(camera_options, panel, camera):
-                with _isolated_nodes(isolate, panel):
-                    output = cmds.playblast(
-                        compression=compression,
-                        format=format,
-                        percent=100,
-                        quality=100,
-                        viewer=viewer,
-                        startTime=start_frame,
-                        endTime=end_frame,
-                        offScreen=off_screen,
-                        forceOverwrite=overwrite,
-                        filename=filename,
-                        rawFrameNumbers=raw_frame_numbers,
-                        **playblast_kwargs)
+                with _applied_display_options(display_options):
+                    with _isolated_nodes(isolate, panel):
+                        output = cmds.playblast(
+                            compression=compression,
+                            format=format,
+                            percent=100,
+                            quality=100,
+                            viewer=viewer,
+                            startTime=start_frame,
+                            endTime=end_frame,
+                            offScreen=off_screen,
+                            forceOverwrite=overwrite,
+                            filename=filename,
+                            rawFrameNumbers=raw_frame_numbers,
+                            **playblast_kwargs)
 
         return output
 
@@ -228,6 +232,10 @@ class DisplayOptions:
     display-related options.
 
     """
+    displayGradient = True
+    background = (0.631, 0.631, 0.631)
+    backgroundTop = (0.535, 0.617, 0.702)
+    backgroundBottom = (0.052, 0.052, 0.052)
 
 
 def _parse_options(options):
@@ -334,6 +342,40 @@ def _applied_camera_options(options, panel, camera):
         if old_options:
             for opt, value in old_options.iteritems():
                 cmds.setAttr(camera + "." + opt, value)
+
+
+@contextlib.contextmanager
+def _applied_display_options(options):
+    """Context manager for setting background color display options."""
+    from maya import cmds
+
+    options = options or DisplayOptions()
+
+    colors = ['background', 'backgroundTop', 'backgroundBottom']
+    prefs = ['displayGradient']
+
+    # store current settings
+    original = {}
+    for clr in colors:
+        original[clr] = cmds.displayRGBColor(clr, query=True)
+    for pref in prefs:
+        original[pref] = cmds.displayPref(query=True, **{pref: True})
+
+    # apply settings of options
+    for clr in colors:
+        value = getattr(options, clr)
+        cmds.displayRGBColor(clr, *value)
+    for pref in prefs:
+        value = getattr(options, pref)
+        cmds.displayPref(**{pref: value})
+
+    yield
+
+    # restore original settings
+    for clr in colors:
+        cmds.displayRGBColor(clr, *original[clr])
+    for pref in prefs:
+        cmds.displayPref(**{pref: original[pref]})
 
 
 @contextlib.contextmanager
