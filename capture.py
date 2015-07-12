@@ -41,9 +41,9 @@ def capture(camera=None,
             none is specified, no files are saved.
         start_frame (float, optional): Defaults to current start frame.
         end_frame (float, optional): Defaults to current end frame.
-        frame (float or tuple, optional): A single frame, tuple of frames or
-            frame ranges. This can be used to capture a single frame or an
-            arbitrary sequence of frames.
+        frame (float or tuple, optional): A single frame or list of frames.
+            Use this to capture a single frame or an arbitrary sequence of
+            frames.
         format (str, optional): Name of format, defaults to "qt".
         compression (str, optional): Name of compression, defaults to "h264"
         off_screen (bool, optional): Whether or not to playblast off screen
@@ -88,14 +88,6 @@ def capture(camera=None,
     height = height or cmds.getAttr("defaultResolution.height")
     start_frame = start_frame or cmds.playbackOptions(minTime=True, query=True)
     end_frame = end_frame or cmds.playbackOptions(maxTime=True, query=True)
-
-    # Ensure frame sequences is flattened list if list is provided
-    if frame is not None:
-        if isinstance(frame, (list, tuple)):
-            iterable = ([x] if isinstance(x, (float, int)) else x
-                        for x in frame)
-            frame = list(itertools.chain.from_iterable(iterable))
-            print frame
 
     # We need to wrap `completeFilename`, otherwise even when None is provided
     # it will use filename as the exact name. Only when lacking as argument
