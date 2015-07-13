@@ -92,6 +92,11 @@ def capture(camera=None,
 
     width = width or cmds.getAttr("defaultResolution.width")
     height = height or cmds.getAttr("defaultResolution.height")
+    if maintain_aspect_ratio:
+        ratio = cmds.getAttr("defaultResolution.deviceAspectRatio")
+        height = width / ratio
+
+
     start_frame = start_frame or cmds.playbackOptions(minTime=True, query=True)
     end_frame = end_frame or cmds.playbackOptions(maxTime=True, query=True)
 
@@ -105,9 +110,8 @@ def capture(camera=None,
         playblast_kwargs['frame'] = frame
 
     with _independent_panel(
-            width=width,
-            height=height,
-            maintain_aspect_ratio=maintain_aspect_ratio) as panel:
+            width=width+10,
+            height=height+10) as panel:
 
         cmds.lookThru(panel, camera)
         cmds.setFocus(panel)
@@ -129,6 +133,7 @@ def capture(camera=None,
                             offScreen=off_screen,
                             forceOverwrite=overwrite,
                             filename=filename,
+                            widthHeight=[width, height],
                             rawFrameNumbers=raw_frame_numbers,
                             **playblast_kwargs)
 
@@ -263,14 +268,12 @@ def _parse_options(options):
 
 
 @contextlib.contextmanager
-def _independent_panel(width, height, maintain_aspect_ratio=True):
+def _independent_panel(width, height):
     """Create capture-window context without decorations
 
     Arguments:
         width (int): Width of panel
         height (int): Height of panel
-        maintain_aspect_ratio (bool): Modify height in order to
-            maintain aspect ratio.
 
     Example:
         >>> with _independent_panel(800, 600):
@@ -280,12 +283,14 @@ def _independent_panel(width, height, maintain_aspect_ratio=True):
 
     from maya import cmds
 
-    if maintain_aspect_ratio:
-        ratio = cmds.getAttr("defaultResolution.deviceAspectRatio")
-        height = width / ratio
+    # center panel on screen
+    screen_width, screen_height = _get_screen_size()
+    topLeft = [int((screen_height-height)/2.0),
+               int((screen_width-width)/2.0)]
 
     window = cmds.window(width=width,
                          height=height,
+                         topLeftCorner=topLeft,
                          menuBarVisible=False,
                          titleBar=False)
     cmds.paneLayout()
@@ -416,3 +421,10 @@ def _image_to_clipboard(path):
     image = PySide.QtGui.QImage(path)
     clipboard = PySide.QtGui.QApplication.clipboard()
     clipboard.setImage(image, mode=PySide.QtGui.QClipboard.Clipboard)
+
+
+def _get_screen_size():
+    """Return available screen size without space occupied by taskbar"""
+    import PySide.QtGui
+    rect =  PySide.QtGui.QDesktopWidget().screenGeometry(-1)
+    return [rect.width(), rect.height()]
