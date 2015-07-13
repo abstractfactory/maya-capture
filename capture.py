@@ -144,6 +144,9 @@ def snap(*args, **kwargs):
     Arguments:
         frame (float, optional): The frame to snap. If not provided current
             frame is used.
+        clipboard (bool, optional): Whether to add the output image to the
+            global clipboard. This allows to easily paste the snapped image
+            into another application, eg. into Photoshop.
 
     Keywords:
         See `capture`.
@@ -171,11 +174,19 @@ def snap(*args, **kwargs):
     kwargs['viewer'] = viewer
     kwargs['raw_frame_numbers'] = raw_frame_numbers
 
+    # pop snap only keyword arguments
+    clipboard = kwargs.pop('clipboard', False)
+
+    # perform capture
     output = capture(*args, **kwargs)
 
     # substitute any # in the output to the actual frame number
-    replace = lambda m: str(frame).zfill(len(m.group()))
+    replace = lambda m: str(int(frame)).zfill(len(m.group()))
     output = re.sub("#+", replace, output)
+
+    # add image to clipboard
+    if clipboard:
+        _image_to_clipboard(output)
 
     return output
 
@@ -397,3 +408,11 @@ def _isolated_nodes(nodes, panel):
         for obj in nodes:
             cmds.isolateSelect(panel, addDagObject=obj)
     yield
+
+
+def _image_to_clipboard(path):
+    """Copies the image at path to the system's global clipboard."""
+    import PySide.QtGui
+    image = PySide.QtGui.QImage(path)
+    clipboard = PySide.QtGui.QApplication.clipboard()
+    clipboard.setImage(image, mode=PySide.QtGui.QClipboard.Clipboard)
