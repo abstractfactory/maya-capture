@@ -202,6 +202,8 @@ class ViewportOptions:
     useDefaultMaterial = False
     wireframeOnShaded = False
     displayAppearance = 'smoothShaded'
+    selectionHiliteDisplay = False
+    headsUpDisplay = True
 
     # Visibility flags
     nurbsCurves = False
