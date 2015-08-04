@@ -1,14 +1,17 @@
-"""Playblasting with independent viewport, camera and display options"""
+"""Maya Capture
 
-version_info = (0, 1, 0)
+Playblasting with independent viewport, camera and display options
 
-__version__ = "%s.%s.%s" % version_info
-__license__ = "MIT"
-
+"""
 
 import sys
 import contextlib
 import re
+
+version_info = (1, 0, 0)
+
+__version__ = "%s.%s.%s" % version_info
+__license__ = "MIT"
 
 
 def capture(camera=None,
@@ -95,7 +98,6 @@ def capture(camera=None,
     if maintain_aspect_ratio:
         ratio = cmds.getAttr("defaultResolution.deviceAspectRatio")
         height = width / ratio
-
 
     start_frame = start_frame or cmds.playbackOptions(minTime=True, query=True)
     end_frame = end_frame or cmds.playbackOptions(maxTime=True, query=True)
@@ -185,8 +187,10 @@ def snap(*args, **kwargs):
     # perform capture
     output = capture(*args, **kwargs)
 
-    # substitute any # in the output to the actual frame number
-    replace = lambda m: str(int(frame)).zfill(len(m.group()))
+    def replace(m):
+        """Substitute # with frame number"""
+        return str(int(frame)).zfill(len(m.group()))
+
     output = re.sub("#+", replace, output)
 
     # add image to clipboard
@@ -428,5 +432,5 @@ def _image_to_clipboard(path):
 def _get_screen_size():
     """Return available screen size without space occupied by taskbar"""
     import PySide.QtGui
-    rect =  PySide.QtGui.QDesktopWidget().screenGeometry(-1)
+    rect = PySide.QtGui.QDesktopWidget().screenGeometry(-1)
     return [rect.width(), rect.height()]
