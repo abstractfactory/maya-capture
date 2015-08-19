@@ -249,6 +249,7 @@ class CameraOptions:
     displayGateMask = False
     displayResolution = False
     displayFilmGate = False
+    overscan = 1.0
 
 
 class DisplayOptions:
@@ -351,22 +352,20 @@ def _applied_camera_options(options, panel, camera):
 
     from maya import cmds
 
-    old_options = None
+    options = options or CameraOptions()
+    options = _parse_options(options)
 
-    if options is not None:
-        options = _parse_options(options)
-        old_options = dict()
+    old_options = dict()
+    for opt in options:
+        try:
+            old_options[opt] = cmds.getAttr(camera + "." + opt)
+        except:
+            sys.stderr.write("Could not get camera attribute "
+                             "for capture: %s" % opt)
+            delattr(options, opt)
 
-        for opt in options:
-            try:
-                old_options[opt] = cmds.getAttr(camera + "." + opt)
-            except:
-                sys.stderr.write("Could not get camera attribute "
-                                 "for capture: %s" % opt)
-                delattr(options, opt)
-
-        for opt, value in options.iteritems():
-            cmds.setAttr(camera + "." + opt, value)
+    for opt, value in options.iteritems():
+        cmds.setAttr(camera + "." + opt, value)
 
     try:
         yield
