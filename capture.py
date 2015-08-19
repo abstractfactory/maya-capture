@@ -109,6 +109,11 @@ def capture(camera=None,
     if frame:
         playblast_kwargs['frame'] = frame
 
+    # (#21) Bugfix: `maya.cmds.playblast` suffers from undo bug where it
+    # always sets the currentTime to frame 1. By setting currentTime before
+    # the playblast call it'll undo correctly.
+    cmds.currentTime(cmds.currentTime(q=1))
+
     with _independent_panel(
             width=width+10,
             height=height+10) as panel:
