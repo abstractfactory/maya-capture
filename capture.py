@@ -8,6 +8,8 @@ import sys
 import contextlib
 import re
 
+from maya import cmds
+
 version_info = (1, 0, 0)
 
 __version__ = "%s.%s.%s" % version_info
@@ -85,8 +87,6 @@ def capture(camera=None,
 
     """
 
-    from maya import cmds
-
     camera = camera or "persp"
 
     # Ensure camera exists
@@ -98,7 +98,7 @@ def capture(camera=None,
     if maintain_aspect_ratio:
         ratio = cmds.getAttr("defaultResolution.deviceAspectRatio")
         height = width / ratio
-
+        
     start_frame = start_frame or cmds.playbackOptions(minTime=True, query=True)
     end_frame = end_frame or cmds.playbackOptions(maxTime=True, query=True)
 
@@ -110,6 +110,11 @@ def capture(camera=None,
         playblast_kwargs['completeFilename'] = complete_filename
     if frame:
         playblast_kwargs['frame'] = frame
+
+    # (#21) Bugfix: `maya.cmds.playblast` suffers from undo bug where it
+    # always sets the currentTime to frame 1. By setting currentTime before
+    # the playblast call it'll undo correctly.
+    cmds.currentTime(cmds.currentTime(q=1))
 
     with _independent_panel(
             width=width+10,
@@ -124,20 +129,21 @@ def capture(camera=None,
             with _applied_camera_options(camera_options, panel, camera):
                 with _applied_display_options(display_options):
                     with _isolated_nodes(isolate, panel):
-                        output = cmds.playblast(
-                            compression=compression,
-                            format=format,
-                            percent=100,
-                            quality=100,
-                            viewer=viewer,
-                            startTime=start_frame,
-                            endTime=end_frame,
-                            offScreen=off_screen,
-                            forceOverwrite=overwrite,
-                            filename=filename,
-                            widthHeight=[width, height],
-                            rawFrameNumbers=raw_frame_numbers,
-                            **playblast_kwargs)
+                        with _maintained_time():
+                            output = cmds.playblast(
+                                compression=compression,
+                                format=format,
+                                percent=100,
+                                quality=100,
+                                viewer=viewer,
+                                startTime=start_frame,
+                                endTime=end_frame,
+                                offScreen=off_screen,
+                                forceOverwrite=overwrite,
+                                filename=filename,
+                                widthHeight=[width, height],
+                                rawFrameNumbers=raw_frame_numbers,
+                                **playblast_kwargs)
 
         return output
 
@@ -158,8 +164,6 @@ def snap(*args, **kwargs):
     Keywords:
         See `capture`.
     """
-
-    from maya import cmds
 
     # capture single frame
     frame = kwargs.pop('frame', cmds.currentTime(q=1))
@@ -248,6 +252,12 @@ class CameraOptions:
     displayGateMask = False
     displayResolution = False
     displayFilmGate = False
+    displayFieldChart = False
+    displaySafeAction = False
+    displaySafeTitle = False
+    displayFilmPivot = False
+    displayFilmOrigin = False
+    overscan = 1.0
 
 
 class DisplayOptions:
@@ -286,8 +296,6 @@ def _independent_panel(width, height):
         ...   cmds.capture()
 
     """
-
-    from maya import cmds
 
     # center panel on screen
     screen_width, screen_height = _get_screen_size()
@@ -330,8 +338,6 @@ def _independent_panel(width, height):
 def _applied_viewport_options(options, panel):
     """Context manager for applying `options` to `panel`"""
 
-    from maya import cmds
-
     options = options or ViewportOptions()
     options = _parse_options(options)
     cmds.modelEditor(panel,
@@ -348,24 +354,20 @@ def _applied_viewport_options(options, panel):
 def _applied_camera_options(options, panel, camera):
     """Context manager for applying `options` to `camera`"""
 
-    from maya import cmds
+    options = options or CameraOptions()
+    options = _parse_options(options)
 
-    old_options = None
+    old_options = dict()
+    for opt in options:
+        try:
+            old_options[opt] = cmds.getAttr(camera + "." + opt)
+        except:
+            sys.stderr.write("Could not get camera attribute "
+                             "for capture: %s" % opt)
+            delattr(options, opt)
 
-    if options is not None:
-        options = _parse_options(options)
-        old_options = dict()
-
-        for opt in options:
-            try:
-                old_options[opt] = cmds.getAttr(camera + "." + opt)
-            except:
-                sys.stderr.write("Could not get camera attribute "
-                                 "for capture: %s" % opt)
-                delattr(options, opt)
-
-        for opt, value in options.iteritems():
-            cmds.setAttr(camera + "." + opt, value)
+    for opt, value in options.iteritems():
+        cmds.setAttr(camera + "." + opt, value)
 
     try:
         yield
@@ -378,7 +380,6 @@ def _applied_camera_options(options, panel, camera):
 @contextlib.contextmanager
 def _applied_display_options(options):
     """Context manager for setting background color display options."""
-    from maya import cmds
 
     options = options or DisplayOptions()
 
@@ -412,13 +413,22 @@ def _applied_display_options(options):
 @contextlib.contextmanager
 def _isolated_nodes(nodes, panel):
     """Context manager for isolating `nodes` in `panel`"""
-    from maya import cmds
 
     if nodes is not None:
         cmds.isolateSelect(panel, state=True)
         for obj in nodes:
             cmds.isolateSelect(panel, addDagObject=obj)
     yield
+
+@contextlib.contextmanager
+def _maintained_time():
+    """Context manager for preserving (resetting) the time after the context"""
+
+    current_time = cmds.currentTime(query=1)
+    try:
+        yield
+    finally:
+        cmds.currentTime(current_time)
 
 
 def _image_to_clipboard(path):
