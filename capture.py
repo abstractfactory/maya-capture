@@ -10,6 +10,8 @@ import sys
 import contextlib
 import re
 
+from maya import cmds
+
 
 def capture(camera=None,
             width=None,
@@ -81,8 +83,6 @@ def capture(camera=None,
         ...         camera_options=cam_opts)
 
     """
-
-    from maya import cmds
 
     camera = camera or "persp"
 
@@ -162,8 +162,6 @@ def snap(*args, **kwargs):
     Keywords:
         See `capture`.
     """
-
-    from maya import cmds
 
     # capture single frame
     frame = kwargs.pop('frame', cmds.currentTime(q=1))
@@ -290,8 +288,6 @@ def _independent_panel(width, height):
 
     """
 
-    from maya import cmds
-
     # center panel on screen
     screen_width, screen_height = _get_screen_size()
     topLeft = [int((screen_height-height)/2.0),
@@ -333,8 +329,6 @@ def _independent_panel(width, height):
 def _applied_viewport_options(options, panel):
     """Context manager for applying `options` to `panel`"""
 
-    from maya import cmds
-
     options = options or ViewportOptions()
     options = _parse_options(options)
     cmds.modelEditor(panel,
@@ -350,8 +344,6 @@ def _applied_viewport_options(options, panel):
 @contextlib.contextmanager
 def _applied_camera_options(options, panel, camera):
     """Context manager for applying `options` to `camera`"""
-
-    from maya import cmds
 
     options = options or CameraOptions()
     options = _parse_options(options)
@@ -379,7 +371,6 @@ def _applied_camera_options(options, panel, camera):
 @contextlib.contextmanager
 def _applied_display_options(options):
     """Context manager for setting background color display options."""
-    from maya import cmds
 
     options = options or DisplayOptions()
 
@@ -413,7 +404,6 @@ def _applied_display_options(options):
 @contextlib.contextmanager
 def _isolated_nodes(nodes, panel):
     """Context manager for isolating `nodes` in `panel`"""
-    from maya import cmds
 
     if nodes is not None:
         cmds.isolateSelect(panel, state=True)
@@ -424,7 +414,6 @@ def _isolated_nodes(nodes, panel):
 @contextlib.contextmanager
 def _maintained_time():
     """Context manager for preserving (resetting) the time after the context"""
-    from maya import cmds
 
     current_time = cmds.currentTime(query=1)
     try:
