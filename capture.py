@@ -248,6 +248,11 @@ class CameraOptions:
     displayGateMask = False
     displayResolution = False
     displayFilmGate = False
+    displayFieldChart = False
+    displaySafeAction = False
+    displaySafeTitle = False
+    displayFilmPivot = False
+    displayFilmOrigin = False
     overscan = 1.0
 
 
