@@ -127,20 +127,21 @@ def capture(camera=None,
             with _applied_camera_options(camera_options, panel, camera):
                 with _applied_display_options(display_options):
                     with _isolated_nodes(isolate, panel):
-                        output = cmds.playblast(
-                            compression=compression,
-                            format=format,
-                            percent=100,
-                            quality=100,
-                            viewer=viewer,
-                            startTime=start_frame,
-                            endTime=end_frame,
-                            offScreen=off_screen,
-                            forceOverwrite=overwrite,
-                            filename=filename,
-                            widthHeight=[width, height],
-                            rawFrameNumbers=raw_frame_numbers,
-                            **playblast_kwargs)
+                        with _maintained_time():
+                            output = cmds.playblast(
+                                compression=compression,
+                                format=format,
+                                percent=100,
+                                quality=100,
+                                viewer=viewer,
+                                startTime=start_frame,
+                                endTime=end_frame,
+                                offScreen=off_screen,
+                                forceOverwrite=overwrite,
+                                filename=filename,
+                                widthHeight=[width, height],
+                                rawFrameNumbers=raw_frame_numbers,
+                                **playblast_kwargs)
 
         return output
 
@@ -419,6 +420,17 @@ def _isolated_nodes(nodes, panel):
         for obj in nodes:
             cmds.isolateSelect(panel, addDagObject=obj)
     yield
+
+@contextlib.contextmanager
+def _maintained_time():
+    """Context manager for preserving (resetting) the time after the context"""
+    from maya import cmds
+
+    current_time = cmds.currentTime(query=1)
+    try:
+        yield
+    finally:
+        cmds.currentTime(current_time)
 
 
 def _image_to_clipboard(path):
