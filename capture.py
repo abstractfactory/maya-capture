@@ -87,9 +87,6 @@ def capture(camera=None,
 
     """
 
-    if _in_standalone():
-        raise RuntimeError("capture.py requires Maya to run with a GUI")
-
     camera = camera or "persp"
 
     # Ensure camera exists
@@ -122,13 +119,10 @@ def capture(camera=None,
     padding = 10  # Extend panel to accommodate for OS window manager
     with _independent_panel(width=width + padding,
                             height=height + padding) as panel:
-
-        cmds.lookThru(panel, camera)
         cmds.setFocus(panel)
 
-        assert panel in cmds.playblast(activeEditor=True)
-
         with contextlib.nested(
+             _maintain_camera(panel, camera),
              _applied_viewport_options(viewport_options, panel),
              _applied_camera_options(camera_options, panel, camera),
              _applied_display_options(display_options),
@@ -441,8 +435,29 @@ def _maintained_time():
         cmds.currentTime(current_time)
 
 
+@contextlib.contextmanager
+def _maintain_camera(panel, camera):
+    state = {}
+
+    if not _in_standalone():
+        cmds.lookThru(panel, camera)
+    else:
+        state = dict((camera, cmds.getAttr(camera + ".rnd"))
+                     for camera in cmds.ls(type="camera"))
+        cmds.setAttr(camera + ".rnd", True)
+
+    try:
+        yield
+    finally:
+        for camera, renderable in state.iteritems():
+            cmds.setAttr(camera + ".rnd", renderable)
+
+
 def _image_to_clipboard(path):
     """Copies the image at path to the system's global clipboard."""
+    if _in_standalone():
+        raise Exception("Cannot copy to clipboard from Maya Standalone")
+
     import PySide.QtGui
     image = PySide.QtGui.QImage(path)
     clipboard = PySide.QtGui.QApplication.clipboard()
@@ -451,6 +466,9 @@ def _image_to_clipboard(path):
 
 def _get_screen_size():
     """Return available screen size without space occupied by taskbar"""
+    if _in_standalone():
+        return [0, 0]
+
     import PySide.QtGui
     rect = PySide.QtGui.QDesktopWidget().screenGeometry(-1)
     return [rect.width(), rect.height()]
