@@ -4,13 +4,13 @@ Playblasting with independent viewport, camera and display options
 
 """
 
+import re
 import sys
 import contextlib
-import re
 
 from maya import cmds
 
-version_info = (1, 0, 0)
+version_info = (1, 1, 0)
 
 __version__ = "%s.%s.%s" % version_info
 __license__ = "MIT"
@@ -87,6 +87,9 @@ def capture(camera=None,
 
     """
 
+    if _in_standalone():
+        raise RuntimeError("capture.py requires Maya to run with a GUI")
+
     camera = camera or "persp"
 
     # Ensure camera exists
@@ -98,7 +101,7 @@ def capture(camera=None,
     if maintain_aspect_ratio:
         ratio = cmds.getAttr("defaultResolution.deviceAspectRatio")
         height = width / ratio
-        
+
     start_frame = start_frame or cmds.playbackOptions(minTime=True, query=True)
     end_frame = end_frame or cmds.playbackOptions(maxTime=True, query=True)
 
@@ -116,34 +119,36 @@ def capture(camera=None,
     # the playblast call it'll undo correctly.
     cmds.currentTime(cmds.currentTime(q=1))
 
-    with _independent_panel(
-            width=width+10,
-            height=height+10) as panel:
+    padding = 10  # Extend panel to accommodate for OS window manager
+    with _independent_panel(width=width + padding,
+                            height=height + padding) as panel:
 
         cmds.lookThru(panel, camera)
         cmds.setFocus(panel)
 
         assert panel in cmds.playblast(activeEditor=True)
 
-        with _applied_viewport_options(viewport_options, panel):
-            with _applied_camera_options(camera_options, panel, camera):
-                with _applied_display_options(display_options):
-                    with _isolated_nodes(isolate, panel):
-                        with _maintained_time():
-                            output = cmds.playblast(
-                                compression=compression,
-                                format=format,
-                                percent=100,
-                                quality=100,
-                                viewer=viewer,
-                                startTime=start_frame,
-                                endTime=end_frame,
-                                offScreen=off_screen,
-                                forceOverwrite=overwrite,
-                                filename=filename,
-                                widthHeight=[width, height],
-                                rawFrameNumbers=raw_frame_numbers,
-                                **playblast_kwargs)
+        with contextlib.nested(
+             _applied_viewport_options(viewport_options, panel),
+             _applied_camera_options(camera_options, panel, camera),
+             _applied_display_options(display_options),
+             _isolated_nodes(isolate, panel),
+             _maintained_time()):
+
+                output = cmds.playblast(
+                    compression=compression,
+                    format=format,
+                    percent=100,
+                    quality=100,
+                    viewer=viewer,
+                    startTime=start_frame,
+                    endTime=end_frame,
+                    offScreen=off_screen,
+                    forceOverwrite=overwrite,
+                    filename=filename,
+                    widthHeight=[width, height],
+                    rawFrameNumbers=raw_frame_numbers,
+                    **playblast_kwargs)
 
         return output
 
@@ -384,30 +389,34 @@ def _applied_display_options(options):
     options = options or DisplayOptions()
 
     colors = ['background', 'backgroundTop', 'backgroundBottom']
-    prefs = ['displayGradient']
+    preferences = ['displayGradient']
 
-    # store current settings
+    # Store current settings
     original = {}
-    for clr in colors:
-        original[clr] = cmds.displayRGBColor(clr, query=True)
-    for pref in prefs:
-        original[pref] = cmds.displayPref(query=True, **{pref: True})
+    for color in colors:
+        original[color] = cmds.displayRGBColor(color, query=True) or []
 
-    # apply settings of options
-    for clr in colors:
-        value = getattr(options, clr)
-        cmds.displayRGBColor(clr, *value)
-    for pref in prefs:
-        value = getattr(options, pref)
-        cmds.displayPref(**{pref: value})
+    for preference in preferences:
+        original[preference] = cmds.displayPref(query=True, **{preference: True})
 
-    yield
+    # Apply settings
+    for color in colors:
+        value = getattr(options, color)
+        cmds.displayRGBColor(color, *value)
 
-    # restore original settings
-    for clr in colors:
-        cmds.displayRGBColor(clr, *original[clr])
-    for pref in prefs:
-        cmds.displayPref(**{pref: original[pref]})
+    for preference in preferences:
+        value = getattr(options, preference)
+        cmds.displayPref(**{preference: value})
+
+    try:
+        yield
+
+    finally:
+        # Restore original settings
+        for color in colors:
+            cmds.displayRGBColor(color, *original[color])
+        for preference in preferences:
+            cmds.displayPref(**{preference: original[preference]})
 
 
 @contextlib.contextmanager
@@ -419,6 +428,7 @@ def _isolated_nodes(nodes, panel):
         for obj in nodes:
             cmds.isolateSelect(panel, addDagObject=obj)
     yield
+
 
 @contextlib.contextmanager
 def _maintained_time():
@@ -444,3 +454,7 @@ def _get_screen_size():
     import PySide.QtGui
     rect = PySide.QtGui.QDesktopWidget().screenGeometry(-1)
     return [rect.width(), rect.height()]
+
+
+def _in_standalone():
+    return not hasattr(cmds, "about") or cmds.about(batch=True)
