@@ -76,15 +76,17 @@ def capture(camera=None,
         >>> # Launch default capture
         >>> capture()
         >>> # Launch capture with custom viewport settings
-        >>> view_opts = ViewportOptions
-        >>> view_opts.grid = False
-        >>> view_opts.polymeshes = True
-        >>> view_opts.displayAppearance = "wireframe"
-        >>> cam_opts = CameraOptions.copy()
-        >>> cam_opts.displayResolution = True
-        >>> capture('myCamera', 800, 600,
-        ...         viewport_options=view_opts,
-        ...         camera_options=cam_opts)
+        >>> capture('persp', 800, 600,
+        ...         viewport_options={
+        ...             "displayAppearance": "wireframe",
+        ...             "grid": False,
+        ...             "polymeshes": True,
+        ...         },
+        ...         camera_options={
+        ...             "displayResolution": True
+        ...         }
+        ... )
+
 
     """
 
