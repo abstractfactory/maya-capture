@@ -258,16 +258,6 @@ DisplayOptions = {
 }
 
 
-# def _parse_options(options):
-#     """Return dictionary of properties from option-objects"""
-#     opts = dict()
-#     for attr in dir(options):
-#         if attr.startswith("__"):
-#             continue
-#         opts[attr] = getattr(options, attr)
-#     return opts
-
-
 @contextlib.contextmanager
 def _independent_panel(width, height):
     """Create capture-window context without decorations
@@ -323,7 +313,8 @@ def _independent_panel(width, height):
 def _applied_viewport_options(options, panel):
     """Context manager for applying `options` to `panel`"""
 
-    options = options or ViewportOptions.copy()
+    options = dict(ViewportOptions, **(options or {}))
+
     cmds.modelEditor(panel,
                      edit=True,
                      allObjects=False,
@@ -338,7 +329,7 @@ def _applied_viewport_options(options, panel):
 def _applied_camera_options(options, panel, camera):
     """Context manager for applying `options` to `camera`"""
 
-    options = options or CameraOptions.copy()
+    options = dict(CameraOptions, **(options or {}))
 
     old_options = dict()
     for opt in options:
@@ -364,7 +355,7 @@ def _applied_camera_options(options, panel, camera):
 def _applied_display_options(options):
     """Context manager for setting background color display options."""
 
-    options = options or DisplayOptions.copy()
+    options = dict(DisplayOptions, **(options or {}))
 
     colors = ['background', 'backgroundTop', 'backgroundBottom']
     preferences = ['displayGradient']
