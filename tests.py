@@ -1,3 +1,13 @@
+"""Tests for capture.
+
+Within Maya, setup a scene of moderate range (e.g. 10 frames)
+and run the following.
+
+Example:
+    >>> nose.run(argv=[sys.argv[0], "tests", "-v"])
+
+"""
+
 import capture
 
 
