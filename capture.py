@@ -76,11 +76,11 @@ def capture(camera=None,
         >>> # Launch default capture
         >>> capture()
         >>> # Launch capture with custom viewport settings
-        >>> view_opts = ViewportOptions()
+        >>> view_opts = ViewportOptions
         >>> view_opts.grid = False
         >>> view_opts.polymeshes = True
         >>> view_opts.displayAppearance = "wireframe"
-        >>> cam_opts = CameraOptions()
+        >>> cam_opts = CameraOptions.copy()
         >>> cam_opts.displayResolution = True
         >>> capture('myCamera', 800, 600,
         ...         viewport_options=view_opts,
@@ -204,83 +204,68 @@ def snap(*args, **kwargs):
     return output
 
 
-class ViewportOptions:
-    """Viewport options for :func:`capture`"""
-
-    useDefaultMaterial = False
-    wireframeOnShaded = False
-    displayAppearance = 'smoothShaded'
-    selectionHiliteDisplay = False
-    headsUpDisplay = True
-
-    # Visibility flags
-    nurbsCurves = False
-    nurbsSurfaces = False
-    polymeshes = True
-    subdivSurfaces = False
-    cameras = False
-    lights = False
-    grid = False
-    joints = False
-    ikHandles = False
-    deformers = False
-    dynamics = False
-    fluids = False
-    hairSystems = False
-    follicles = False
-    nCloths = False
-    nParticles = False
-    nRigids = False
-    dynamicConstraints = False
-    locators = False
-    manipulators = False
-    dimensions = False
-    handles = False
-    pivots = False
-    textures = False
-    strokes = False
+ViewportOptions = {
+    "useDefaultMaterial": False,
+    "wireframeOnShaded": False,
+    "displayAppearance": 'smoothShaded',
+    "selectionHiliteDisplay": False,
+    "headsUpDisplay": True,
+    "nurbsCurves": False,
+    "nurbsSurfaces": False,
+    "polymeshes": True,
+    "subdivSurfaces": False,
+    "cameras": False,
+    "lights": False,
+    "grid": False,
+    "joints": False,
+    "ikHandles": False,
+    "deformers": False,
+    "dynamics": False,
+    "fluids": False,
+    "hairSystems": False,
+    "follicles": False,
+    "nCloths": False,
+    "nParticles": False,
+    "nRigids": False,
+    "dynamicConstraints": False,
+    "locators": False,
+    "manipulators": False,
+    "dimensions": False,
+    "handles": False,
+    "pivots": False,
+    "textures": False,
+    "strokes": False,
+}
 
 
-class CameraOptions:
-    """Camera settings for :func:`capture`
+CameraOptions = {
+    "displayGateMask": False,
+    "displayResolution": False,
+    "displayFilmGate": False,
+    "displayFieldChart": False,
+    "displaySafeAction": False,
+    "displaySafeTitle": False,
+    "displayFilmPivot": False,
+    "displayFilmOrigin": False,
+    "overscan": 1.0,
+}
 
-    Camera options are applied to the specified camera and
-    then reverted once the capture is complete.
-
-    """
-
-    displayGateMask = False
-    displayResolution = False
-    displayFilmGate = False
-    displayFieldChart = False
-    displaySafeAction = False
-    displaySafeTitle = False
-    displayFilmPivot = False
-    displayFilmOrigin = False
-    overscan = 1.0
-
-
-class DisplayOptions:
-    """Display options for :func:`capture`
-
-    Use this struct for background color, anti-alias and other
-    display-related options.
-
-    """
-    displayGradient = True
-    background = (0.631, 0.631, 0.631)
-    backgroundTop = (0.535, 0.617, 0.702)
-    backgroundBottom = (0.052, 0.052, 0.052)
+DisplayOptions = {
+    "displayGradient": True,
+    "background": (0.631, 0.631, 0.631),
+    "backgroundTop": (0.535, 0.617, 0.702),
+    "backgroundBottom": (0.052, 0.052, 0.052),
+}
 
 
-def _parse_options(options):
-    """Return dictionary of properties from option-objects"""
-    opts = dict()
-    for attr in dir(options):
-        if attr.startswith("__"):
-            continue
-        opts[attr] = getattr(options, attr)
-    return opts
+# def _parse_options(options):
+#     """Return dictionary of properties from option-objects"""
+#     opts = dict()
+#     for attr in dir(options):
+#         if attr.startswith("__"):
+#             continue
+#         opts[attr] = getattr(options, attr)
+#     return opts
 
 
 @contextlib.contextmanager
@@ -338,8 +323,7 @@ def _independent_panel(width, height):
 def _applied_viewport_options(options, panel):
     """Context manager for applying `options` to `panel`"""
 
-    options = options or ViewportOptions()
-    options = _parse_options(options)
+    options = options or ViewportOptions.copy()
     cmds.modelEditor(panel,
                      edit=True,
                      allObjects=False,
@@ -354,8 +338,7 @@ def _applied_viewport_options(options, panel):
 def _applied_camera_options(options, panel, camera):
     """Context manager for applying `options` to `camera`"""
 
-    options = options or CameraOptions()
-    options = _parse_options(options)
+    options = options or CameraOptions.copy()
 
     old_options = dict()
     for opt in options:
@@ -381,7 +364,7 @@ def _applied_camera_options(options, panel, camera):
 def _applied_display_options(options):
     """Context manager for setting background color display options."""
 
-    options = options or DisplayOptions()
+    options = options or DisplayOptions.copy()
 
     colors = ['background', 'backgroundTop', 'backgroundBottom']
     preferences = ['displayGradient']
@@ -392,15 +375,16 @@ def _applied_display_options(options):
         original[color] = cmds.displayRGBColor(color, query=True) or []
 
     for preference in preferences:
-        original[preference] = cmds.displayPref(query=True, **{preference: True})
+        original[preference] = cmds.displayPref(
+            query=True, **{preference: True})
 
     # Apply settings
     for color in colors:
-        value = getattr(options, color)
+        value = options[color]
         cmds.displayRGBColor(color, *value)
 
     for preference in preferences:
-        value = getattr(options, preference)
+        value = options[preference]
         cmds.displayPref(**{preference: value})
 
     try:
