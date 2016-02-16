@@ -91,6 +91,16 @@ def capture(camera=None,
     """
 
     camera = camera or "persp"
+    
+    # Fallback to default settings
+    if camera_options is None:
+        camera_options = CameraOptions.copy()
+    
+    if viewport_options is None:
+        viewport_options = ViewportOptions.copy()
+    
+    if display_options is None:
+        display_options = DisplayOptions.copy()
 
     # Ensure camera exists
     if not cmds.objExists(camera):
@@ -126,9 +136,10 @@ def capture(camera=None,
 
         with contextlib.nested(
              _maintain_camera(panel, camera),
-             _applied_viewport_options(viewport_options, panel),
-             _applied_camera_options(camera_options, panel, camera),
-             _applied_display_options(display_options),
+             applied_options(panel, camera,
+                             camera_options,
+                             viewport_options,
+                             display_options),
              _isolated_nodes(isolate, panel),
              _maintained_time()):
 
@@ -259,6 +270,9 @@ DisplayOptions = {
     "backgroundBottom": (0.052, 0.052, 0.052),
 }
 
+# These display options require a different command to be queried and set
+_DisplayOptionsRGB = set(["background", "backgroundTop", "backgroundBottom"])
+
 
 @contextlib.contextmanager
 def _independent_panel(width, height):
@@ -309,86 +323,86 @@ def _independent_panel(width, height):
         # Delete the panel to fix memory leak (about 5 mb per capture)
         cmds.deleteUI(panel, panel=True)
         cmds.deleteUI(window)
+        
+        
+def parse_active_view():
+    """Parse the current settings from the active view"""
+    
+    panel = cmds.getPanel(wf=True)
+    camera = cmds.modelEditor(panel, q=1, camera=1)
+    return parse_view(panel, camera)
 
+        
+def parse_view(panel, camera):
+    """Parse the scene, panel and camera for their current settings"""
 
+    # Display options
+    display_options = {}
+    for key in DisplayOptions.keys():
+        if key in _DisplayOptionsRGB:
+            display_options[key] = cmds.displayRGBColor(key, query=True)
+        else:
+            display_options[key] = cmds.displayPref(query=True, **{key: True})
+            
+    # Viewport options
+    viewport_options = {}
+    for key in ViewportOptions.keys():
+        viewport_options[key] = cmds.modelEditor(panel, query=True, **{key: True})
+
+    # Camera options
+    camera_options = {}
+    for key in CameraOptions.keys():
+        camera_options[key] = cmds.getAttr("{0}.{1}".format(camera, key))
+    
+    return {
+        "viewport_options": viewport_options,
+        "display_options": display_options,
+        "camera_options": camera_options
+    }
+
+    
+def apply_options(panel, camera,
+                  camera_options=None,
+                  viewport_options=None,
+                  display_options=None):
+    """Apply the options to the scene, panel and camera"""
+
+    # Display options
+    if display_options:
+        for key, value in display_options.iteritems():
+            if key in _DisplayOptionsRGB:
+                cmds.displayRGBColor(key, *value)
+            else:
+                cmds.displayPref(**{key: value})
+      
+    # Viewport options
+    if viewport_options:
+        for key, value in viewport_options.iteritems():
+            cmds.modelEditor(panel, edit=True, **{key: value})
+            
+    # Camera options
+    if camera_options:
+        for key, value in camera_options.iteritems():
+            cmds.setAttr("{0}.{1}".format(camera, key), value)
+    
+    
 @contextlib.contextmanager
-def _applied_viewport_options(options, panel):
-    """Context manager for applying `options` to `panel`"""
+def applied_options(panel, 
+                    camera, 
+                    camera_options=None,
+                    viewport_options=None,
+                    display_options=None):
+    """Context manager to apply options to scene, panel and camera"""
 
-    options = dict(ViewportOptions, **(options or {}))
-
-    cmds.modelEditor(panel,
-                     edit=True,
-                     allObjects=False,
-                     grid=False,
-                     manipulators=False)
-    cmds.modelEditor(panel, edit=True, **options)
-
-    yield
-
-
-@contextlib.contextmanager
-def _applied_camera_options(options, panel, camera):
-    """Context manager for applying `options` to `camera`"""
-
-    options = dict(CameraOptions, **(options or {}))
-
-    old_options = dict()
-    for opt in options:
-        try:
-            old_options[opt] = cmds.getAttr(camera + "." + opt)
-        except:
-            sys.stderr.write("Could not get camera attribute "
-                             "for capture: %s" % opt)
-            delattr(options, opt)
-
-    for opt, value in options.iteritems():
-        cmds.setAttr(camera + "." + opt, value)
-
+    original = parse_view(panel, camera)
     try:
+        apply_options(panel, camera, 
+                      camera_options,
+                      viewport_options,
+                      display_options)
         yield
     finally:
-        if old_options:
-            for opt, value in old_options.iteritems():
-                cmds.setAttr(camera + "." + opt, value)
-
-
-@contextlib.contextmanager
-def _applied_display_options(options):
-    """Context manager for setting background color display options."""
-
-    options = dict(DisplayOptions, **(options or {}))
-
-    colors = ['background', 'backgroundTop', 'backgroundBottom']
-    preferences = ['displayGradient']
-
-    # Store current settings
-    original = {}
-    for color in colors:
-        original[color] = cmds.displayRGBColor(color, query=True) or []
-
-    for preference in preferences:
-        original[preference] = cmds.displayPref(
-            query=True, **{preference: True})
-
-    # Apply settings
-    for color in colors:
-        value = options[color]
-        cmds.displayRGBColor(color, *value)
-
-    for preference in preferences:
-        value = options[preference]
-        cmds.displayPref(**{preference: value})
-
-    try:
-        yield
-
-    finally:
-        # Restore original settings
-        for color in colors:
-            cmds.displayRGBColor(color, *original[color])
-        for preference in preferences:
-            cmds.displayPref(**{preference: original[preference]})
+        apply_options(panel, camera, **original)
 
 
 @contextlib.contextmanager
