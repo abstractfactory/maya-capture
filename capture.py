@@ -10,7 +10,7 @@ import contextlib
 
 from maya import cmds
 
-version_info = (1, 1, 0)
+version_info = (2, 0, 0)
 
 __version__ = "%s.%s.%s" % version_info
 __license__ = "MIT"
