@@ -41,13 +41,14 @@ To install, download [capture.py][] and place it in a directory where Maya can f
 >>> capture(width=400, height=200)
 >>> 
 >>> # Launch capture with custom viewport settings
->>> view_opts = ViewportOptions()
->>> view_opts.grid = False
->>> view_opts.polymeshes = True
->>> view_opts.displayAppearance = "wireframe"
->>> cam_opts = CameraOptions()
->>> cam_opts.displayResolution = True
->>> capture('myCamera', 800, 600,
-...         viewport_options=view_opts,
-...         camera_options=cam_opts)
+>>> capture('persp', 800, 600,
+...         viewport_options={
+...             "displayAppearance": "wireframe",
+...             "grid": False,
+...             "polymeshes": True,
+...         },
+...         camera_options={
+...             "displayResolution": True
+...         }
+... )
 ```
