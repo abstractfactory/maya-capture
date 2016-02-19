@@ -33,8 +33,8 @@ def capture(camera=None,
             overwrite=False,
             raw_frame_numbers=False,
             camera_options=None,
-            viewport_options=None,
             display_options=None,
+            viewport_options=None,
             viewport2_options=None,
             complete_filename=None):
     """Playblast in an independent panel
@@ -66,10 +66,10 @@ def capture(camera=None,
             and will be forced to False.
         camera_options (dict, optional): Supplied camera options,
             using `CameraOptions`
-        viewport_options (dict, optional): Supplied viewport
-            options, using `ViewportOptions`
         display_options (dict, optional): Supplied display
             options, using `DisplayOptions`
+        viewport_options (dict, optional): Supplied viewport
+            options, using `ViewportOptions`
         viewport2_options (dict, optional): Supplied display
             options, using `Viewport2Options`
         complete_filename (str, optional): Exact name of output file. Use this
@@ -210,6 +210,29 @@ def snap(*args, **kwargs):
     return output
 
 
+CameraOptions = {
+    "displayGateMask": False,
+    "displayResolution": False,
+    "displayFilmGate": False,
+    "displayFieldChart": False,
+    "displaySafeAction": False,
+    "displaySafeTitle": False,
+    "displayFilmPivot": False,
+    "displayFilmOrigin": False,
+    "overscan": 1.0,
+    "depthOfField": False,
+}
+
+DisplayOptions = {
+    "displayGradient": True,
+    "background": (0.631, 0.631, 0.631),
+    "backgroundTop": (0.535, 0.617, 0.702),
+    "backgroundBottom": (0.052, 0.052, 0.052),
+}
+
+# These display options require a different command to be queried and set
+_DisplayOptionsRGB = set(["background", "backgroundTop", "backgroundBottom"])
+
 ViewportOptions = {
     # renderer
     "rendererName": "vp2Renderer",
@@ -255,30 +278,6 @@ ViewportOptions = {
     "textures": False,
     "strokes": False
 }
-
-
-CameraOptions = {
-    "displayGateMask": False,
-    "displayResolution": False,
-    "displayFilmGate": False,
-    "displayFieldChart": False,
-    "displaySafeAction": False,
-    "displaySafeTitle": False,
-    "displayFilmPivot": False,
-    "displayFilmOrigin": False,
-    "overscan": 1.0,
-    "depthOfField": False,
-}
-
-DisplayOptions = {
-    "displayGradient": True,
-    "background": (0.631, 0.631, 0.631),
-    "backgroundTop": (0.535, 0.617, 0.702),
-    "backgroundBottom": (0.052, 0.052, 0.052),
-}
-
-# These display options require a different command to be queried and set
-_DisplayOptionsRGB = set(["background", "backgroundTop", "backgroundBottom"])
 
 Viewport2Options = {
     "consolidateWorld": True,
@@ -347,16 +346,16 @@ def parse_view(panel, camera):
             display_options[key] = cmds.displayRGBColor(key, query=True)
         else:
             display_options[key] = cmds.displayPref(query=True, **{key: True})
-            
-    # Viewport options
-    viewport_options = {}
-    for key in ViewportOptions.keys():
-        viewport_options[key] = cmds.modelEditor(panel, query=True, **{key: True})
 
     # Camera options
     camera_options = {}
     for key in CameraOptions.keys():
         camera_options[key] = cmds.getAttr("{0}.{1}".format(camera, key))
+            
+    # Viewport options
+    viewport_options = {}
+    for key in ViewportOptions.keys():
+        viewport_options[key] = cmds.modelEditor(panel, query=True, **{key: True})
 
     viewport2_options = {}
     for key in Viewport2Options.keys():
@@ -364,9 +363,9 @@ def parse_view(panel, camera):
         viewport2_options[key] = cmds.getAttr(attr)
     
     return {
-        "viewport_options": viewport_options,
         "display_options": display_options,
         "camera_options": camera_options,
+        "viewport_options": viewport_options,
         "viewport2_options": viewport2_options
     }
 
@@ -420,22 +419,6 @@ def _independent_panel(width, height):
         # Delete the panel to fix memory leak (about 5 mb per capture)
         cmds.deleteUI(panel, panel=True)
         cmds.deleteUI(window)
-
-
-@contextlib.contextmanager
-def _applied_viewport_options(options, panel):
-    """Context manager for applying `options` to `panel`"""
-
-    options = dict(ViewportOptions, **(options or {}))
-
-    cmds.modelEditor(panel,
-                     edit=True,
-                     allObjects=False,
-                     grid=False,
-                     manipulators=False)
-    cmds.modelEditor(panel, edit=True, **options)
-
-    yield
 
 
 @contextlib.contextmanager
@@ -500,6 +483,22 @@ def _applied_display_options(options):
             cmds.displayRGBColor(color, *original[color])
         for preference in preferences:
             cmds.displayPref(**{preference: original[preference]})
+
+
+@contextlib.contextmanager
+def _applied_viewport_options(options, panel):
+    """Context manager for applying `options` to `panel`"""
+
+    options = dict(ViewportOptions, **(options or {}))
+
+    cmds.modelEditor(panel,
+                     edit=True,
+                     allObjects=False,
+                     grid=False,
+                     manipulators=False)
+    cmds.modelEditor(panel, edit=True, **options)
+
+    yield
 
 
 @contextlib.contextmanager
