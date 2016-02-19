@@ -64,14 +64,14 @@ def capture(camera=None,
             frame numbers from the scene or capture to a sequence starting at
             zero. Defaults to False. When set to True `viewer` can't be used
             and will be forced to False.
-        camera_options (CameraOptions, optional): Supplied camera options,
-            using :class:`CameraOptions`
-        viewport_options (ViewportOptions, optional): Supplied viewport
-            options, using :class:`ViewportOptions`
-        display_options (DisplayOptions, optional): Supplied display
-            options, using :class:`DisplayOptions`
-        viewport2_options (Viewport2Options, optional): Supplied display
-            options, using :class:`Viewport2Options`
+        camera_options (dict, optional): Supplied camera options,
+            using `CameraOptions`
+        viewport_options (dict, optional): Supplied viewport
+            options, using `ViewportOptions`
+        display_options (dict, optional): Supplied display
+            options, using `DisplayOptions`
+        viewport2_options (dict, optional): Supplied display
+            options, using `Viewport2Options`
         complete_filename (str, optional): Exact name of output file. Use this
             to override the output of `filename` so it excludes frame padding.
 
