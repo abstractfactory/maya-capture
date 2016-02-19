@@ -259,6 +259,45 @@ DisplayOptions = {
     "backgroundBottom": (0.052, 0.052, 0.052),
 }
 
+# These display options require a different command to be queried and set
+_DisplayOptionsRGB = set(["background", "backgroundTop", "backgroundBottom"])
+        
+        
+def parse_active_view():
+    """Parse the current settings from the active view"""
+    
+    panel = cmds.getPanel(wf=True)
+    camera = cmds.modelEditor(panel, q=1, camera=1)
+    return parse_view(panel, camera)
+
+        
+def parse_view(panel, camera):
+    """Parse the scene, panel and camera for their current settings"""
+
+    # Display options
+    display_options = {}
+    for key in DisplayOptions.keys():
+        if key in _DisplayOptionsRGB:
+            display_options[key] = cmds.displayRGBColor(key, query=True)
+        else:
+            display_options[key] = cmds.displayPref(query=True, **{key: True})
+            
+    # Viewport options
+    viewport_options = {}
+    for key in ViewportOptions.keys():
+        viewport_options[key] = cmds.modelEditor(panel, query=True, **{key: True})
+
+    # Camera options
+    camera_options = {}
+    for key in CameraOptions.keys():
+        camera_options[key] = cmds.getAttr("{0}.{1}".format(camera, key))
+    
+    return {
+        "viewport_options": viewport_options,
+        "display_options": display_options,
+        "camera_options": camera_options
+    }
+
 
 @contextlib.contextmanager
 def _independent_panel(width, height):
