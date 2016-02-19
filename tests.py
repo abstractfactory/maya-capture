@@ -31,6 +31,11 @@ def test_viewport_options():
     capture.capture(viewport_options={"wireframeOnShaded": True})
 
 
+def test_viewport2_options():
+    """(Optional) viewport2 options works"""
+    capture.capture(viewport2_options={"ssaoEnable": True})
+
+
 def test_parse_active_view():
     """Parse active view works"""
 
