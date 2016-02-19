@@ -267,6 +267,12 @@ def parse_active_view():
     """Parse the current settings from the active view"""
     
     panel = cmds.getPanel(wf=True)
+    
+    # This happens when last focus was on panel
+    # that got deleted (e.g. `capture()` then `parse_active_view()`)
+    if not panel:
+        raise RuntimeError("No active panel")
+
     camera = cmds.modelEditor(panel, q=1, camera=1)
     return parse_view(panel, camera)
 

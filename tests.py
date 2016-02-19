@@ -31,6 +31,26 @@ def test_viewport_options():
     capture.capture(viewport_options={"wireframeOnShaded": True})
 
 
+def test_parse_active_view():
+    """Parse active view works"""
+
+    # Set focus to modelPanel1 (assume it exists)
+    # Otherwise the panel with focus (temporary panel from capture)
+    # got deleted and there's no "active panel"
+    import maya.cmds as cmds
+    cmds.setFocus("modelPanel1")
+
+    options = capture.parse_active_view()
+    capture.capture(**options)
+
+
+def test_parse_view():
+    """Parse view works"""
+
+    options = capture.parse_view("modelPanel1", "front")
+    capture.capture(**options)
+
+
 def test_preset():
     preset = {
         "width": 320,
