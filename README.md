@@ -28,6 +28,8 @@ To install, download [capture.py][] and place it in a directory where Maya can f
 
 ### Examples
 
+Overview
+
 ```python
 >>> from capture import capture
 >>> capture()
@@ -52,3 +54,110 @@ To install, download [capture.py][] and place it in a directory where Maya can f
 ...         }
 ... )
 ```
+
+Playblast selected cameras
+
+```python
+import maya.cmds as cmds
+from capture import capture
+
+# Any camera shapes under selection
+cameras = cmds.ls(sl=1, dag=1, leaf=1, type='camera')
+for cam in cameras:
+    capture(cam)
+```
+
+Playblast selected time range
+
+```python
+import maya.cmds as cmds
+import maya.mel as mel
+from capture import capture
+
+# Get global mel variable
+time_slider = mel.eval("$gPlayBackSlider=$gPlayBackSlider")
+start, end = cmds.timeControl(time_slider, query=True, rangeArray=True)
+capture(start_frame=start, end_frame=end)
+```
+
+Playblast with current settings of a camera and panel
+
+```python
+from capture import parse_view, capture
+
+panel = "modelPanel1"
+camera = "persp"
+
+options = parse_view(panel, camera)
+capture(**options)
+```
+
+Playblast with current settings of active view
+
+```python
+from capture import parse_active_view, capture
+
+options = parse_active_view()
+capture(**options)
+```
+
+Playblast to file using scene name
+
+```python
+from capture import capture
+import maya.cmds as cmds
+import os
+
+filename = cmds.file(q=1, sceneName=True, shortName=True)
+name = os.path.splitext(filename)[0]
+capture(filename=name)
+```
+
+Taking a snapshot (single frame)
+
+```python
+from capture import snap
+
+snap()
+```
+
+Taking a snapshot and store in clipboard. This allows you to paste it in other applications like Photoshop.
+
+```python
+from capture import snap
+
+snap(clipboard=True)
+```
+
+
+### Advanced Examples
+
+Building your own library of capture presets
+
+```python
+import json
+import capture
+
+# Utility functions to save and load options
+
+def save_preset(path, preset):
+    """Save options to path"""
+    with open(path, "w") as f:
+        json.dump(preset, f)
+
+
+def load_preset(path):
+    """Load options json from path"""
+    with open(path, "r") as f:    
+        return json.load(f)
+
+
+# With this we can start saving presets
+preset = capture.parse_active_view()
+save_preset("myPreset.json", preset)
+
+# And capturing with the presets
+preset = load_preset("myPreset.json")
+capture.capture(**preset)
+```
+
