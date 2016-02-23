@@ -320,6 +320,48 @@ Viewport2Options = {
     "useMaximumHardwareLights": True,
     "vertexAnimationCache": 0
  }
+ 
+
+def apply_view(panel, 
+                          camera, 
+                          display_options,
+                          camera_options,
+                          viewport_options,
+                          viewport2_options):
+    """Apply options to the camera and panel"""
+
+    # Display options
+    for key, value in display_options.iteritems():
+        if key in _DisplayOptionsRGB:
+            cmds.displayRGBColor(key, *value)
+        else:
+            cmds.displayPref(**{key: value})
+
+    # Camera options
+    for key, value in camera_options.iteritems():
+        cmds.setAttr("{0}.{1}".format(camera, key), value)
+            
+    # Viewport options
+    for key, value in viewport_options.iteritems():
+        cmds.modelEditor(panel, edit=True, **{key: value})
+
+    for key, value in viewport2_options.iteritems():
+        attr = "hardwareRenderingGlobals.{0}".format(key)
+        cmds.setAttr(attr, value)
+        
+
+@contextlib.contextmanager
+def applied_view(panel, 
+                             camera, 
+                             **options):
+    """Apply options to panel and camera during the context"""
+    
+    original = parse_view(panel, camera)
+    apply_view(panel, camera, **options)
+    try:
+        yield
+    finally:
+        apply_view(panel, camera, **original)
 
         
 def parse_active_view():
