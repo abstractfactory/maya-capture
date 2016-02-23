@@ -324,13 +324,11 @@ Viewport2Options = {
 
 def apply_view(panel, 
                           camera, 
-                          display_options,
-                          camera_options,
-                          viewport_options,
-                          viewport2_options):
+                          **options):
     """Apply options to the camera and panel"""
 
     # Display options
+    display_options = options.get("display_options", {})
     for key, value in display_options.iteritems():
         if key in _DisplayOptionsRGB:
             cmds.displayRGBColor(key, *value)
@@ -338,13 +336,16 @@ def apply_view(panel,
             cmds.displayPref(**{key: value})
 
     # Camera options
+    camera_options = options.get("camera_options", {})
     for key, value in camera_options.iteritems():
         cmds.setAttr("{0}.{1}".format(camera, key), value)
             
     # Viewport options
+    viewport_options = options.get("viewport_options", {})
     for key, value in viewport_options.iteritems():
         cmds.modelEditor(panel, edit=True, **{key: value})
 
+    viewport2_options = options.get("viewport2_options", {})
     for key, value in viewport2_options.iteritems():
         attr = "hardwareRenderingGlobals.{0}".format(key)
         cmds.setAttr(attr, value)
