@@ -54,7 +54,18 @@ def test_parse_view():
 
     options = capture.parse_view("modelPanel1", "front")
     capture.capture(**options)
+    
+    
+def test_apply_view():
+    """Apply view works"""
+    capture.apply_view("modelPanel1", "persp", camera_options={"overscan": 2})
 
+    
+def test_apply_parsed_view():
+    """Apply parsed view works"""
+    options = capture.parse_view("modelPanel1", "persp")
+    capture.apply_view("modelPanel1", "persp", **options)
+    
 
 def test_preset():
     preset = {
