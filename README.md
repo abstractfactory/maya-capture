@@ -29,28 +29,28 @@ To install, download [capture.py][] and place it in a directory where Maya can f
 Overview
 
 ```python
->>> from capture import capture
->>> capture()
->>> 
->>> # Capture multiple cameras
->>> capture('Camera1')
->>> capture('Camera2')
->>> capture('Camera3')
->>> 
->>> # Capture with custom resolution
->>> capture(width=400, height=200)
->>> 
->>> # Launch capture with custom viewport settings
->>> capture('persp', 800, 600,
-...         viewport_options={
-...             "displayAppearance": "wireframe",
-...             "grid": False,
-...             "polymeshes": True,
-...         },
-...         camera_options={
-...             "displayResolution": True
-...         }
-... )
+from capture import capture
+capture()
+
+# Capture multiple cameras
+capture('Camera1')
+capture('Camera2')
+capture('Camera3')
+
+# Capture with custom resolution
+capture(width=400, height=200)
+
+# Launch capture with custom viewport settings
+capture('persp', 800, 600,
+        viewport_options={
+            "displayAppearance": "wireframe",
+            "grid": False,
+            "polymeshes": True,
+        },
+        camera_options={
+            "displayResolution": True
+        }
+)
 ```
 
 Playblast selected cameras
