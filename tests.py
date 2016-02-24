@@ -65,6 +65,31 @@ def test_apply_parsed_view():
     """Apply parsed view works"""
     options = capture.parse_view("modelPanel1", "persp")
     capture.apply_view("modelPanel1", "persp", **options)
+
+
+def test_apply_parsed_view_exact():
+    """Apply parsed view sanity check works"""
+    
+    import maya.cmds as cmds
+    panel = "modelPanel1"
+    camera = "persp"
+
+    cmds.modelEditor(panel, edit=True, displayAppearance="wireframe")
+    parsed = capture.parse_view(panel, camera)
+    display = parsed["viewport_options"]["displayAppearance"]
+    assert display == "wireframe"
+
+    # important to test both, just in case wireframe was already
+    # set when making the first query, and to make sure this
+    # actually does something.
+    cmds.modelEditor(panel, edit=True, displayAppearance="smoothShaded")
+    parsed = capture.parse_view(panel, camera)
+    display = parsed["viewport_options"]["displayAppearance"]
+    assert display == "smoothShaded"
+
+    capture.apply_view(panel, camera, viewport_options={"displayAppearance": "wireframe"})
+    assert cmds.modelEditor(panel, query=True, displayAppearance=True) == "wireframe"
+
     
 
 def test_preset():
