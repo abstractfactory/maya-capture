@@ -91,7 +91,6 @@ def test_apply_parsed_view_exact():
     assert cmds.modelEditor(panel, query=True, displayAppearance=True) == "wireframe"
 
     
-
 def test_preset():
     preset = {
         "width": 320,
