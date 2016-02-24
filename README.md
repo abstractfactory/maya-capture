@@ -1,16 +1,14 @@
-![](docs/images/demo.gif)
+![](https://cloud.githubusercontent.com/assets/2152766/13301028/d98a75b0-db3a-11e5-8c07-cad3e0382f96.gif)
 
 ### Playblasting in Maya done right
 
 Playblast with independent viewport, camera and display options.
 
-- [Documentation][docs]
 - [Issue tracker][issues]
 - [Wiki][]
 
 [issues]: https://github.com/mottosso/maya-capture/issues
 [wiki]: https://github.com/mottosso/maya-capture/wiki
-[docs]: http://maya-capture.readthedocs.org
 
 ### Usage
 
