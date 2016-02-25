@@ -556,13 +556,13 @@ def _applied_viewport2_options(options):
 
     # Store current settings
     original = {}
-    for opt in options:
+    for opt in options.copy():
         try:
             original[opt] = cmds.getAttr("hardwareRenderingGlobals." + opt)
         except:
             sys.stderr.write("Could not get camera attribute "
                              "for capture: %s" % opt)
-            delattr(options, opt)
+            options.pop(opt)
 
     # Apply settings
     for opt, value in options.iteritems():
