@@ -383,7 +383,7 @@ def parse_view(panel, camera):
 
     # Display options
     display_options = {}
-    for key in DisplayOptions.keys():
+    for key in DisplayOptions:
         if key in _DisplayOptionsRGB:
             display_options[key] = cmds.displayRGBColor(key, query=True)
         else:
@@ -391,12 +391,12 @@ def parse_view(panel, camera):
 
     # Camera options
     camera_options = {}
-    for key in CameraOptions.keys():
+    for key in CameraOptions:
         camera_options[key] = cmds.getAttr("{0}.{1}".format(camera, key))
 
     # Viewport options
     viewport_options = {}
-    for key in ViewportOptions.keys():
+    for key in ViewportOptions:
         viewport_options[key] = cmds.modelEditor(
             panel, query=True, **{key: True})
 
