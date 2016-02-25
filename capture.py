@@ -169,6 +169,7 @@ def snap(*args, **kwargs):
 
     Keywords:
         See `capture`.
+
     """
 
     # capture single frame
@@ -287,17 +288,7 @@ Viewport2Options = {
     "floatingPointRTFormat": 1,
     "gammaCorrectionEnable": False,
     "gammaValue": 2.2,
-    "holdOutDetailMode": 1,
-    "holdOutMode": True,
-    "hwFogEnable": False,
-    "hwFogColorR": 0.5,
-    "hwFogColorG": 0.5,
-    "hwFogColorB": 0.5,
     "hwFogAlpha": 1.0,
-    "hwFogDensity": 0.1,
-    "hwFogEnd": 100.0,
-    "hwFogFalloff": 0,
-    "hwFogStart": 0.0,
     "lineAAEnable": False,
     "maxHardwareLights": 8,
     "motionBlurEnable": False,
@@ -318,7 +309,7 @@ Viewport2Options = {
     "transparencyQuality": 0.33,
     "useMaximumHardwareLights": True,
     "vertexAnimationCache": 0
- }
+}
 
 
 def apply_view(panel,
@@ -563,9 +554,7 @@ def _applied_viewport2_options(options):
     for opt in options.copy():
         try:
             original[opt] = cmds.getAttr("hardwareRenderingGlobals." + opt)
-        except:
-            sys.stderr.write("Could not get camera attribute "
-                             "for capture: %s" % opt)
+        except ValueError:
             options.pop(opt)
 
     # Apply settings
@@ -575,9 +564,9 @@ def _applied_viewport2_options(options):
     try:
         yield
     finally:
-        if original:
-            for opt, value in original.iteritems():
-                cmds.setAttr("hardwareRenderingGlobals." + opt, value)
+        # Restore previous settings
+        for opt, value in original.iteritems():
+            cmds.setAttr("hardwareRenderingGlobals." + opt, value)
 
 
 @contextlib.contextmanager
@@ -643,3 +632,25 @@ def _get_screen_size():
 
 def _in_standalone():
     return not hasattr(cmds, "about") or cmds.about(batch=True)
+
+
+# --------------------------------
+#
+# Apply version specific settings
+#
+# --------------------------------
+
+version = cmds.about(version=True)
+if "2016" in version:
+    Viewport2Options.update({
+        "hwFogFalloff": 0,
+        "hwFogDensity": 0.1,
+        "hwFogEnable": False,
+        "holdOutDetailMode": 1,
+        "hwFogEnd": 100.0,
+        "holdOutMode": True,
+        "hwFogColorR": 0.5,
+        "hwFogColorG": 0.5,
+        "hwFogColorB": 0.5,
+        "hwFogStart": 0.0,
+    })
