@@ -403,7 +403,10 @@ def parse_view(panel, camera):
     viewport2_options = {}
     for key in Viewport2Options.keys():
         attr = "hardwareRenderingGlobals.{0}".format(key)
-        viewport2_options[key] = cmds.getAttr(attr)
+        try:
+            viewport2_options[key] = cmds.getAttr(attr)
+        except ValueError:
+            continue
 
     return {
         "display_options": display_options,
