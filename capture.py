@@ -243,7 +243,6 @@ ViewportOptions = {
     "fogEnd": 1,
     "fogColor": (0, 0, 0, 0),
     "shadows": False,
-    "depthOfFieldPreview": False,
     "displayTextures": True,
     "displayLights": "default",
     "useDefaultMaterial": False,
