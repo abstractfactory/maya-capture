@@ -288,7 +288,6 @@ Viewport2Options = {
     "floatingPointRTFormat": 1,
     "gammaCorrectionEnable": False,
     "gammaValue": 2.2,
-    "hwFogAlpha": 1.0,
     "lineAAEnable": False,
     "maxHardwareLights": 8,
     "motionBlurEnable": False,
@@ -643,6 +642,7 @@ def _in_standalone():
 version = cmds.about(version=True)
 if "2016" in version:
     Viewport2Options.update({
+        "hwFogAlpha": 1.0,
         "hwFogFalloff": 0,
         "hwFogDensity": 0.1,
         "hwFogEnable": False,

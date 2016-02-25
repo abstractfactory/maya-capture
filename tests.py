@@ -100,111 +100,54 @@ def test_apply_parsed_view_all():
 
     # A set of options all trying to be different from the default
     # settings (in `capture.py`) so we can test "changing states"
-    camera_options = {
-        "displayGateMask": True,
-        "displayResolution": True,
-        "displayFilmGate": True,
-        "displayFieldChart": True,
-        "displaySafeAction": True,
-        "displaySafeTitle": True,
-        "displayFilmPivot": True,
-        "displayFilmOrigin": True,
-        "overscan": 2.0,
-        "depthOfField": True,
-    }
+    camera_options = {}
+    display_options = {}
+    viewport_options = {}
+    viewport2_options = {}
 
-    display_options = {
-        "displayGradient": False,
-        "background": (0.0, 1, 0.1),
-        "backgroundTop": (0.6, 0.1, 0.1),
-        "backgroundBottom": (0.1, 0.1, 0.1),
-    }
+    for key, value in capture.CameraOptions.items():
+        if isinstance(value, bool):
+            value = not value
+        elif isinstance(value, (int, float)):
+            value = value + 1
+        else:
+            raise Exception("Unexpected value in CameraOptions: %s=%s"
+                            % (key, value))
 
-    viewport_options = {
-        "rendererName": "vp2Renderer",
-        "fogging": True,
-        "fogMode": "linear",
-        "fogDensity": 0.2,
-        "fogStart": 0,
-        "fogEnd": 5,
-        "fogColor": (0.3, 1, 2, 3),
-        "shadows": True,
-        "depthOfFieldPreview": True,
-        "displayTextures": False,
-        "displayLights": "default",
-        "useDefaultMaterial": True,
-        "wireframeOnShaded": True,
-        "displayAppearance": 'smoothShaded',
-        "selectionHiliteDisplay": True,
-        "headsUpDisplay": False,
-        "nurbsCurves": True,
-        "nurbsSurfaces": True,
-        "polymeshes": False,
-        "subdivSurfaces": True,
-        "cameras": True,
-        "lights": True,
-        "grid": True,
-        "joints": True,
-        "ikHandles": True,
-        "deformers": True,
-        "dynamics": True,
-        "fluids": True,
-        "hairSystems": True,
-        "follicles": True,
-        "nCloths": True,
-        "nParticles": True,
-        "nRigids": True,
-        "dynamicConstraints": True,
-        "locators": True,
-        "manipulators": True,
-        "dimensions": True,
-        "handles": True,
-        "pivots": True,
-        "textures": True,
-        "strokes": True
-    }
+    for key, value in capture.DisplayOptions.items():
+        if isinstance(value, bool):
+            value = not value
+        elif isinstance(value, tuple):
+            value = (1, 0, 1)
+        else:
+            raise Exception("Unexpected value in DisplayOptions: %s=%s"
+                            % (key, value))
 
-    viewport2_options = {
-        "consolidateWorld": False,
-        "enableTextureMaxRes": True,
-        "bumpBakeResolution": 32,
-        "colorBakeResolution": 32,
-        "floatingPointRTEnable": False,
-        "floatingPointRTFormat": 2,
-        "gammaCorrectionEnable": True,
-        "gammaValue": 1.0,
-        "holdOutDetailMode": 2,
-        "holdOutMode": False,
-        "hwFogEnable": True,
-        "hwFogColorR": 0.4,
-        "hwFogColorG": 0.3,
-        "hwFogColorB": 0.2,
-        "hwFogAlpha": 0.4,
-        "hwFogDensity": 0.4,
-        "hwFogEnd": 200.0,
-        "hwFogFalloff": 1,
-        "hwFogStart": 10.0,
-        "lineAAEnable": True,
-        "maxHardwareLights": 4,
-        "motionBlurEnable": True,
-        "motionBlurSampleCount": 4,
-        "motionBlurShutterOpenFraction": 0.4,
-        "motionBlurType": 0,
-        "multiSampleCount": 4,
-        "multiSampleEnable": True,
-        "singleSidedLighting": True,
-        "ssaoEnable": True,
-        "ssaoAmount": 0.5,
-        "ssaoFilterRadius": 8,
-        "ssaoRadius": 8,
-        "ssaoSamples": 8,
-        "textureMaxResolution": 1024,
-        "threadDGEvaluation": True,
-        "transparencyAlgorithm": 1,
-        "transparencyQuality": 0.55,
-        "useMaximumHardwareLights": False,
-        "vertexAnimationCache": 0
-     }
+    for key, value in capture.ViewportOptions.items():
+        if isinstance(value, bool):
+            value = not value
+        elif isinstance(value, (int, float)):
+            value = value + 1
+        elif isinstance(value, tuple):
+            value = (1, 0, 1)
+        elif isinstance(value, basestring):
+            pass  # Don't bother, for now
+        else:
+            raise Exception("Unexpected value in ViewportOptions: %s=%s"
+                            % (key, value))
+
+    for key, value in capture.Viewport2Options.items():
+        if isinstance(value, bool):
+            value = not value
+        elif isinstance(value, (int, float)):
+            value = value + 1
+        elif isinstance(value, tuple):
+            value = (1, 0, 1)
+        elif isinstance(value, basestring):
+            pass  # Don't bother, for now
+        else:
+            raise Exception("Unexpected value in Viewport2Options: %s=%s"
+                            % (key, value))
 
     defaults = {
         "camera_options": capture.CameraOptions.copy(),
