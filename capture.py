@@ -319,11 +319,11 @@ Viewport2Options = {
     "useMaximumHardwareLights": True,
     "vertexAnimationCache": 0
  }
- 
 
-def apply_view(panel, 
-                          camera, 
-                          **options):
+
+def apply_view(panel,
+               camera,
+               **options):
     """Apply options to the camera and panel"""
 
     # Display options
@@ -338,7 +338,7 @@ def apply_view(panel,
     camera_options = options.get("camera_options", {})
     for key, value in camera_options.iteritems():
         cmds.setAttr("{0}.{1}".format(camera, key), value)
-            
+
     # Viewport options
     viewport_options = options.get("viewport_options", {})
     for key, value in viewport_options.iteritems():
@@ -348,14 +348,14 @@ def apply_view(panel,
     for key, value in viewport2_options.iteritems():
         attr = "hardwareRenderingGlobals.{0}".format(key)
         cmds.setAttr(attr, value)
-        
+
 
 @contextlib.contextmanager
-def applied_view(panel, 
-                             camera, 
-                             **options):
+def applied_view(panel,
+                 camera,
+                 **options):
     """Apply options to panel and camera during the context"""
-    
+
     original = parse_view(panel, camera)
     apply_view(panel, camera, **options)
     try:
@@ -363,12 +363,12 @@ def applied_view(panel,
     finally:
         apply_view(panel, camera, **original)
 
-        
+
 def parse_active_view():
     """Parse the current settings from the active view"""
-    
+
     panel = cmds.getPanel(wf=True)
-    
+
     # This happens when last focus was on panel
     # that got deleted (e.g. `capture()` then `parse_active_view()`)
     if not panel:
@@ -377,7 +377,7 @@ def parse_active_view():
     camera = cmds.modelEditor(panel, q=1, camera=1)
     return parse_view(panel, camera)
 
-        
+
 def parse_view(panel, camera):
     """Parse the scene, panel and camera for their current settings"""
 
@@ -393,17 +393,18 @@ def parse_view(panel, camera):
     camera_options = {}
     for key in CameraOptions.keys():
         camera_options[key] = cmds.getAttr("{0}.{1}".format(camera, key))
-            
+
     # Viewport options
     viewport_options = {}
     for key in ViewportOptions.keys():
-        viewport_options[key] = cmds.modelEditor(panel, query=True, **{key: True})
+        viewport_options[key] = cmds.modelEditor(
+            panel, query=True, **{key: True})
 
     viewport2_options = {}
     for key in Viewport2Options.keys():
         attr = "hardwareRenderingGlobals.{0}".format(key)
         viewport2_options[key] = cmds.getAttr(attr)
-    
+
     return {
         "display_options": display_options,
         "camera_options": camera_options,
