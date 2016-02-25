@@ -471,13 +471,13 @@ def _applied_camera_options(options, panel, camera):
     options = dict(CameraOptions, **(options or {}))
 
     old_options = dict()
-    for opt in options:
+    for opt in options.copy():
         try:
             old_options[opt] = cmds.getAttr(camera + "." + opt)
         except:
             sys.stderr.write("Could not get camera attribute "
                              "for capture: %s" % opt)
-            delattr(options, opt)
+            options.pop(opt)
 
     for opt, value in options.iteritems():
         cmds.setAttr(camera + "." + opt, value)
