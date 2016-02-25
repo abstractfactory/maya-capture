@@ -54,13 +54,13 @@ def test_parse_view():
 
     options = capture.parse_view("modelPanel1", "front")
     capture.capture(**options)
-    
-    
+
+
 def test_apply_view():
     """Apply view works"""
     capture.apply_view("modelPanel1", "persp", camera_options={"overscan": 2})
 
-    
+
 def test_apply_parsed_view():
     """Apply parsed view works"""
     options = capture.parse_view("modelPanel1", "persp")
@@ -69,7 +69,7 @@ def test_apply_parsed_view():
 
 def test_apply_parsed_view_exact():
     """Apply parsed view sanity check works"""
-    
+
     import maya.cmds as cmds
     panel = "modelPanel1"
     camera = "persp"
@@ -87,8 +87,12 @@ def test_apply_parsed_view_exact():
     display = parsed["viewport_options"]["displayAppearance"]
     assert display == "smoothShaded"
 
-    capture.apply_view(panel, camera, viewport_options={"displayAppearance": "wireframe"})
-    assert cmds.modelEditor(panel, query=True, displayAppearance=True) == "wireframe"
+    capture.apply_view(panel,
+                       camera,
+                       viewport_options={"displayAppearance": "wireframe"})
+    assert cmds.modelEditor(panel,
+                            query=True,
+                            displayAppearance=True) == "wireframe"
 
 
 def test_apply_parsed_view_all():
@@ -241,25 +245,26 @@ def test_apply_parsed_view_all():
                         return False
                 elif isinstance(value, (tuple, list)):
                     # Assuming for now that any tuple or list contains floats
-                    if not all((abs(a-b) < precision) for a, b in zip(value, other_value)):
+                    if not all((abs(a-b) < precision)
+                               for a, b in zip(value, other_value)):
                         return False
                 else:
-                   if value != other_value:
-                    return False
-        
+                    if value != other_value:
+                        return False
+
         return True
-    
+
     # Apply defaults and check
     capture.apply_view(panel, camera, **defaults)
     parsed_defaults = capture.parse_view(panel, camera)
     assert compare(defaults, parsed_defaults)
-    
+
     # Apply others and check
     capture.apply_view(panel, camera, **others)
     parsed_others = capture.parse_view(panel, camera)
     assert compare(others, parsed_others)
 
-    
+
 def test_preset():
     preset = {
         "width": 320,
