@@ -156,3 +156,43 @@ preset = load_preset("myPreset.json")
 capture.capture(**preset)
 ```
 
+### Store and retrieve view options
+
+The following will read the state of the current modelPanel,
+let you alter it in some way - such as changing the background
+color - and then revert it back.
+
+```python
+import capture
+from maya import cmds
+
+# Read active panel
+panel = cmds.getPanel(withFocus=True)
+assert "modelPanel" in panel, "Must select a modelPanel"
+
+# Capture current view
+view = capture.parse_view(panel)
+
+# Change your view..
+
+# Apply previous view
+capture.apply_view(panel, **view)
+```
+
+### Store and retrieve scene options
+
+The following will read relevant settings from your
+scene and playblast settings, let you alter it in some way - 
+such as altering the frame range - and then revert it back.
+
+```python
+import capture
+
+# Capture state of scene
+scene = capture.parse_scene()
+
+# Change your scene..
+
+# Apply previous state
+capture.apply_scene(**scene)
+```
