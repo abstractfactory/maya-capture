@@ -9,6 +9,7 @@ Example:
 """
 
 import capture
+from maya import cmds
 
 
 def test_capture():
@@ -52,19 +53,19 @@ def test_parse_active_view():
 def test_parse_view():
     """Parse view works"""
 
-    options = capture.parse_view("modelPanel1", "front")
+    options = capture.parse_view("modelPanel1")
     capture.capture(**options)
 
 
 def test_apply_view():
     """Apply view works"""
-    capture.apply_view("modelPanel1", "persp", camera_options={"overscan": 2})
+    capture.apply_view("modelPanel1", camera_options={"overscan": 2})
 
 
 def test_apply_parsed_view():
     """Apply parsed view works"""
-    options = capture.parse_view("modelPanel1", "persp")
-    capture.apply_view("modelPanel1", "persp", **options)
+    options = capture.parse_view("modelPanel1")
+    capture.apply_view("modelPanel1", **options)
 
 
 def test_apply_parsed_view_exact():
@@ -72,10 +73,9 @@ def test_apply_parsed_view_exact():
 
     import maya.cmds as cmds
     panel = "modelPanel1"
-    camera = "persp"
 
     cmds.modelEditor(panel, edit=True, displayAppearance="wireframe")
-    parsed = capture.parse_view(panel, camera)
+    parsed = capture.parse_view(panel)
     display = parsed["viewport_options"]["displayAppearance"]
     assert display == "wireframe"
 
@@ -83,12 +83,11 @@ def test_apply_parsed_view_exact():
     # set when making the first query, and to make sure this
     # actually does something.
     cmds.modelEditor(panel, edit=True, displayAppearance="smoothShaded")
-    parsed = capture.parse_view(panel, camera)
+    parsed = capture.parse_view(panel)
     display = parsed["viewport_options"]["displayAppearance"]
     assert display == "smoothShaded"
 
     capture.apply_view(panel,
-                       camera,
                        viewport_options={"displayAppearance": "wireframe"})
     assert cmds.modelEditor(panel,
                             query=True,
@@ -164,7 +163,6 @@ def test_apply_parsed_view_all():
     }
 
     panel = "modelPanel1"
-    camera = "persp"
 
     def compare(this, other):
         """Compare options for only settings available in `this`
@@ -198,17 +196,19 @@ def test_apply_parsed_view_all():
         return True
 
     # Apply defaults and check
-    capture.apply_view(panel, camera, **defaults)
-    parsed_defaults = capture.parse_view(panel, camera)
+    capture.apply_view(panel, **defaults)
+    parsed_defaults = capture.parse_view(panel)
     assert compare(defaults, parsed_defaults)
 
     # Apply others and check
-    capture.apply_view(panel, camera, **others)
-    parsed_others = capture.parse_view(panel, camera)
+    capture.apply_view(panel, **others)
+    parsed_others = capture.parse_view(panel)
     assert compare(others, parsed_others)
 
 
 def test_preset():
+    """Creating and applying presets works"""
+
     preset = {
         "width": 320,
         "height": 240,
@@ -224,3 +224,26 @@ def test_preset():
     }
 
     capture.capture(**preset)
+
+
+def test_parse_active_scene():
+    """parse_active_scene() works"""
+
+    parsed = capture.parse_active_scene()
+    reference = {
+        "start_frame": cmds.playbackOptions(minTime=True, query=True),
+        "end_frame": cmds.playbackOptions(maxTime=True, query=True),
+        "width": cmds.getAttr("defaultResolution.width"),
+        "height": cmds.getAttr("defaultResolution.height"),
+        "compression": cmds.optionVar(query="playblastCompression"),
+        "filename": (cmds.optionVar(query="playblastFile")
+                     if cmds.optionVar(query="playblastSaveToFile") else None),
+        "format": cmds.optionVar(query="playblastFormat"),
+        "off_screen": (True if cmds.optionVar(query="playblastOffscreen")
+                       else False),
+        "quality": cmds.optionVar(query="playblastQuality")
+    }
+
+    for key, value in reference.items():
+
+        assert parsed[key] == value

@@ -10,7 +10,7 @@ import contextlib
 
 from maya import cmds
 
-version_info = (2, 0, 0)
+version_info = (2, 1, 0)
 
 __version__ = "%s.%s.%s" % version_info
 __license__ = "MIT"
@@ -124,13 +124,14 @@ def capture(camera=None,
 
     padding = 10  # Extend panel to accommodate for OS window manager
     with _independent_panel(width=width + padding,
-                            height=height + padding) as panel:
+                            height=height + padding,
+                            off_screen=off_screen) as panel:
         cmds.setFocus(panel)
 
         with contextlib.nested(
              _maintain_camera(panel, camera),
              _applied_viewport_options(viewport_options, panel),
-             _applied_camera_options(camera_options, panel, camera),
+             _applied_camera_options(camera_options, panel),
              _applied_display_options(display_options),
              _applied_viewport2_options(viewport2_options),
              _isolated_nodes(isolate, panel),
@@ -311,10 +312,10 @@ Viewport2Options = {
 }
 
 
-def apply_view(panel,
-               camera,
-               **options):
-    """Apply options to the camera and panel"""
+def apply_view(panel, **options):
+    """Apply options to panel"""
+
+    camera = cmds.modelPanel(panel, camera=True, query=True)
 
     # Display options
     display_options = options.get("display_options", {})
@@ -340,20 +341,6 @@ def apply_view(panel,
         cmds.setAttr(attr, value)
 
 
-@contextlib.contextmanager
-def applied_view(panel,
-                 camera,
-                 **options):
-    """Apply options to panel and camera during the context"""
-
-    original = parse_view(panel, camera)
-    apply_view(panel, camera, **options)
-    try:
-        yield
-    finally:
-        apply_view(panel, camera, **original)
-
-
 def parse_active_view():
     """Parse the current settings from the active view"""
 
@@ -361,15 +348,24 @@ def parse_active_view():
 
     # This happens when last focus was on panel
     # that got deleted (e.g. `capture()` then `parse_active_view()`)
-    if not panel:
-        raise RuntimeError("No active panel")
+    if not panel or "modelPanel" not in panel:
+        raise RuntimeError("No acive model panel found")
 
-    camera = cmds.modelEditor(panel, q=1, camera=1)
-    return parse_view(panel, camera)
+    return parse_view(panel)
 
 
-def parse_view(panel, camera):
-    """Parse the scene, panel and camera for their current settings"""
+def parse_view(panel):
+    """Parse the scene, panel and camera for their current settings
+
+    Example:
+        >>> parse_view("modelPanel1")
+
+    Arguments:
+        panel (str): Name of modelPanel
+
+    """
+
+    camera = cmds.modelPanel(panel, query=True, camera=True)
 
     # Display options
     display_options = {}
@@ -399,6 +395,7 @@ def parse_view(panel, camera):
             continue
 
     return {
+        "camera": camera,
         "display_options": display_options,
         "camera_options": camera_options,
         "viewport_options": viewport_options,
@@ -406,8 +403,43 @@ def parse_view(panel, camera):
     }
 
 
+def parse_active_scene():
+    """Parse active scene for arguments for capture()
+
+    *Resolution taken from render settings.
+
+    """
+
+    return {
+        "start_frame": cmds.playbackOptions(minTime=True, query=True),
+        "end_frame": cmds.playbackOptions(maxTime=True, query=True),
+        "width": cmds.getAttr("defaultResolution.width"),
+        "height": cmds.getAttr("defaultResolution.height"),
+        "compression": cmds.optionVar(query="playblastCompression"),
+        "filename": (cmds.optionVar(query="playblastFile")
+                     if cmds.optionVar(query="playblastSaveToFile") else None),
+        "format": cmds.optionVar(query="playblastFormat"),
+        "off_screen": (True if cmds.optionVar(query="playblastOffscreen")
+                       else False),
+        "quality": cmds.optionVar(query="playblastQuality")
+    }
+
+
 @contextlib.contextmanager
-def _independent_panel(width, height):
+def _applied_view(panel, **options):
+    """Apply options to panel"""
+
+    original = parse_view(panel)
+    apply_view(panel, **options)
+
+    try:
+        yield
+    finally:
+        apply_view(panel, **original)
+
+
+@contextlib.contextmanager
+def _independent_panel(width, height, off_screen=False):
     """Create capture-window context without decorations
 
     Arguments:
@@ -429,21 +461,23 @@ def _independent_panel(width, height):
                          height=height,
                          topLeftCorner=topLeft,
                          menuBarVisible=False,
-                         titleBar=False)
+                         titleBar=False,
+                         visible=not off_screen)
     cmds.paneLayout()
     panel = cmds.modelPanel(menuBarVisible=False,
                             label='CapturePanel')
 
     # Hide icons under panel menus
     bar_layout = cmds.modelPanel(panel, q=True, barLayout=True)
-    cmds.frameLayout(bar_layout, e=True, collapse=True)
+    cmds.frameLayout(bar_layout, edit=True, collapse=True)
 
-    cmds.showWindow(window)
+    if not off_screen:
+        cmds.showWindow(window)
 
     # Set the modelEditor of the modelPanel as the active view so it takes
     # the playback focus. Does seem redundant with the `refresh` added in.
     editor = cmds.modelPanel(panel, query=True, modelEditor=True)
-    cmds.modelEditor(editor, e=1, activeView=True)
+    cmds.modelEditor(editor, edit=True, activeView=True)
 
     # Force a draw refresh of Maya so it keeps focus on the new panel
     # This focus is required to force preview playback in the independent panel
@@ -458,9 +492,10 @@ def _independent_panel(width, height):
 
 
 @contextlib.contextmanager
-def _applied_camera_options(options, panel, camera):
+def _applied_camera_options(options, panel):
     """Context manager for applying `options` to `camera`"""
 
+    camera = cmds.modelPanel(panel, query=True, camera=True)
     options = dict(CameraOptions, **(options or {}))
 
     old_options = dict()
