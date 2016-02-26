@@ -60,7 +60,7 @@ import maya.cmds as cmds
 from capture import capture
 
 # Any camera shapes under selection
-cameras = cmds.ls(sl=1, dag=1, leaf=1, type='camera')
+cameras = cmds.ls(selection=True, dag=True, leaf=True, type="camera")
 for cam in cameras:
     capture(cam)
 ```
@@ -83,10 +83,7 @@ Playblast with current settings of a camera and panel
 ```python
 from capture import parse_view, capture
 
-panel = "modelPanel1"
-camera = "persp"
-
-options = parse_view(panel, camera)
+options = parse_view("modelPanel1")
 capture(**options)
 ```
 
