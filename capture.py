@@ -425,6 +425,50 @@ def parse_active_scene():
     }
 
 
+def apply_scene(**options):
+    """Apply options from scene
+
+    Example:
+        >>> apply_scene({"start_frame": 1009})
+
+    Arguments:
+        options (dict): Scene options
+
+    """
+
+    if "start_frame" in options:
+        cmds.playbackOptions(minTime=options["start_frame"])
+
+    if "end_frame" in options:
+        cmds.playbackOptions(maxTime=options["end_frame"])
+
+    if "width" in options:
+        cmds.setAttr("defaultResolution.width", options["width"])
+
+    if "height" in options:
+        cmds.setAttr("defaultResolution.height", options["height"])
+
+    if "compression" in options:
+        cmds.optionVar(
+            stringValue=["playblastCompression", options["compression"]])
+
+    if "filename" in options:
+        cmds.optionVar(
+            stringValue=["playblastFile", options["filename"]])
+
+    if "format" in options:
+        cmds.optionVar(
+            stringValue=["playblastFormat", options["format"]])
+
+    if "off_screen" in options:
+        cmds.optionVar(
+            intValue=["playblastFormat", options["off_screen"]])
+
+    if "quality" in options:
+        cmds.optionVar(
+            floatValue=["playblastQuality", options["quality"]])
+
+
 @contextlib.contextmanager
 def _applied_view(panel, **options):
     """Apply options to panel"""
