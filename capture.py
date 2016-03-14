@@ -4,8 +4,14 @@ Playblasting with independent viewport, camera and display options
 
 """
 
+import os
 import re
 import sys
+import json
+import shutil
+import tempfile
+import threading
+import subprocess
 import contextlib
 
 from maya import cmds
@@ -210,6 +216,127 @@ def snap(*args, **kwargs):
         _image_to_clipboard(output)
 
     return output
+
+def wedge(layers,
+          multiprocess=False,
+          on_finished=None,
+          silent=True,
+          **kwargs):
+    """Capture from a camera once per animation layer
+
+    Use this to create wedges of varying settings.
+
+    Arguments:
+        layers (list): Layers, or combinations of layers, to use per capture
+        multiprocess (bool): Whether to run linearly in your current scene or
+            simultaneously in the background.
+        on_finished (callable): Callback for when multiprocess the entire
+            operation is finished (only relevant with `multiprocess`).
+            Outputted files are passed to callback as a list of absolute paths.
+
+    """
+
+    missing = [l for l in layers if not cmds.objExists(l)]
+    unmuted = [l for l in layers if not cmds.animLayer(
+        l, query=True, mute=True)]
+
+    if missing:
+        raise ValueError("These animation layers was not found: %s" % missing)
+
+    if unmuted:
+        raise ValueError("These animation layers were not muted: %s" % unmuted)
+
+    if not multiprocess:
+        output = list()
+
+        for layer in layers:
+            with _solo_animation_layer(layer):
+                output.append(capture(**kwargs))
+
+        return output
+
+    else:
+        processes = list()
+        tempdir = tempfile.mkdtemp()
+
+        def __post():
+            """Threaded callback"""
+            output = list()
+            cmds.warning("Running post-operation..")
+            for process in processes:
+                fname = None
+
+                # Listen for file output
+                for line in iter(process.stdout.readline, b""):
+                    if not silent:
+                        sys.stdout.write(line)
+
+                    if "__maya_capture_output" in line:
+                        fname = line.split("__maya_capture_output: ")[-1]
+
+                    if "__maya_capture_output" in line:
+                        print(line)
+
+                if fname is None:
+                    sys.stderr.write("Process did not output capture output.")
+
+                output.append(fname)
+
+            cmds.warning("Done, cleaning up temporary files..")
+            shutil.rmtree(tempdir)
+
+            # Trigger callback
+            if on_finished is not None:
+                cmds.warning("Running callback..")
+                on_finished(output)
+
+        # Export scene
+        cmds.warning("Saving scene..")
+        scene = os.path.join(tempdir, "temp.mb")
+        cmds.file(scene, exportAll=True, type="mayaBinary")
+
+        preset = parse_active_scene()
+        if "camera" in kwargs:
+            preset.update(parse_view(kwargs["camera"]))
+        else:
+            preset.update(parse_active_view())
+        preset = json.dumps(preset, indent=4)
+
+        cmds.warning("Running wedges in background..")
+
+        for layer in layers:
+            script = """
+print("Within subprocess..")
+import sys
+sys.path[:] = {paths}
+
+from maya import cmds, standalone
+standalone.initialize()
+
+cmds.file("{scene}", open=True, force=True)
+
+import capture
+output = capture.wedge(["{layer}"], **{preset})
+print("__maya_capture_output: %s" % output)
+""".format(layer=layer, scene=scene, preset=preset, paths=json.dumps(sys.path))
+
+            print("Running script: %s" % script)
+
+            scriptpath = os.path.join(tempdir, layer + ".py")
+            with open(scriptpath, "w") as f:
+                f.write(script)
+
+            popen = subprocess.Popen("mayapy %s" % scriptpath,
+                                     stdout=subprocess.PIPE,
+                                     stderr=subprocess.STDOUT,
+                                     shell=True)
+
+            # Track process
+            processes.append(popen)
+
+        cmds.warning("Awaiting background processes to finish..")
+        threading.Thread(target=__post).start()
+
 
 
 CameraOptions = {
@@ -467,6 +594,19 @@ def apply_scene(**options):
     if "quality" in options:
         cmds.optionVar(
             floatValue=["playblastQuality", options["quality"]])
+
+
+@contextlib.contextmanager
+def _solo_animation_layer(layer):
+    """Isolate animation layer"""
+    if not cmds.animLayer(layer, query=True, mute=True):
+        raise ValueError("%s must be muted" % layer)
+
+    try:
+        cmds.animLayer(layer, edit=True, mute=False)
+        yield
+    finally:
+        cmds.animLayer(layer, edit=True, mute=True)
 
 
 @contextlib.contextmanager
