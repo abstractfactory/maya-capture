@@ -217,8 +217,10 @@ def snap(*args, **kwargs):
 
     return output
 
+
+
 def wedge(layers,
-          multiprocess=False,
+          async=False,
           on_finished=None,
           silent=True,
           **kwargs):
@@ -228,8 +230,8 @@ def wedge(layers,
 
     Arguments:
         layers (list): Layers, or combinations of layers, to use per capture
-        multiprocess (bool): Whether to run linearly in your current scene or
-            simultaneously in the background.
+        async (bool): Whether to run asynchronously, or one at a time
+        silent (bool): Whether or not to print output of subprocesses
         on_finished (callable): Callback for when multiprocess the entire
             operation is finished (only relevant with `multiprocess`).
             Outputted files are passed to callback as a list of absolute paths.
@@ -237,21 +239,20 @@ def wedge(layers,
     """
 
     missing = [l for l in layers if not cmds.objExists(l)]
-    unmuted = [l for l in layers if not cmds.animLayer(
-        l, query=True, mute=True)]
 
     if missing:
         raise ValueError("These animation layers was not found: %s" % missing)
 
-    if unmuted:
-        raise ValueError("These animation layers were not muted: %s" % unmuted)
-
-    if not multiprocess:
+    if not async:
+        # Keep it simple
         output = list()
+        with _muted_animation_layers(layers):
+            for layer in layers:
+                with _solo_animation_layer(layer):
+                    output.append(capture(**kwargs))
 
-        for layer in layers:
-            with _solo_animation_layer(layer):
-                output.append(capture(**kwargs))
+        if on_finished is not None:
+            on_finished(output)
 
         return output
 
@@ -259,7 +260,7 @@ def wedge(layers,
         processes = list()
         tempdir = tempfile.mkdtemp()
 
-        def __post():
+        def __monitor():
             """Threaded callback"""
             output = list()
             cmds.warning("Running post-operation..")
@@ -271,16 +272,20 @@ def wedge(layers,
                     if not silent:
                         sys.stdout.write(line)
 
+                    if line.startswith("out: "):
+                        sys.stdout.write(line[5:])
+
+                    # Keep an eye out for when the output is
+                    # being printed.
                     if "__maya_capture_output" in line:
                         fname = line.split("__maya_capture_output: ")[-1]
-
-                    if "__maya_capture_output" in line:
-                        print(line)
+                        fname = fname.strip()  # Remove newline
 
                 if fname is None:
-                    sys.stderr.write("Process did not output capture output.")
-
-                output.append(fname)
+                    sys.stderr.write(
+                        "Process did not output capture output.\n")
+                else:
+                    output.append(fname)  # remove newline at end
 
             cmds.warning("Done, cleaning up temporary files..")
             shutil.rmtree(tempdir)
@@ -295,37 +300,56 @@ def wedge(layers,
         scene = os.path.join(tempdir, "temp.mb")
         cmds.file(scene, exportAll=True, type="mayaBinary")
 
-        preset = parse_active_scene()
-        if "camera" in kwargs:
-            preset.update(parse_view(kwargs["camera"]))
-        else:
-            preset.update(parse_active_view())
-        preset = json.dumps(preset, indent=4)
-
         cmds.warning("Running wedges in background..")
+
+        preset = parse_active_view()
+        # print(json.dumps(preset, indent=4))
+        preset.update(parse_active_scene())
+        preset.update(kwargs)
 
         for layer in layers:
             script = """
-print("Within subprocess..")
+print("out: Within subprocess..")
+import os
 import sys
-sys.path[:] = {paths}
+import json
 
 from maya import cmds, standalone
 standalone.initialize()
 
+scene = \"{scene}\"
+layer = \"{layer}\"
+preset = json.loads('{preset}')
+print("out: %s" % json.dumps(preset, indent=4))
+
+print("out: Opening %s" % scene)
 cmds.file("{scene}", open=True, force=True)
 
 import capture
-output = capture.wedge(["{layer}"], **{preset})
-print("__maya_capture_output: %s" % output)
-""".format(layer=layer, scene=scene, preset=preset, paths=json.dumps(sys.path))
 
-            print("Running script: %s" % script)
+# One file per layer
+preset["filename"] = layer
+preset["offscreen"] = True
+
+output = capture.wedge([layer], **preset)
+print("out: Made it past capture..")
+print("__maya_capture_output: %s" % output[0])
+
+# Safely exit without throwing an exception
+sys.exit()
+"""
+            script = script.format(
+                layer=layer,
+                scene=scene,
+                preset=json.dumps(kwargs),
+                paths=json.dumps(sys.path)
+            )
 
             scriptpath = os.path.join(tempdir, layer + ".py")
             with open(scriptpath, "w") as f:
                 f.write(script)
 
+            # print("Running script: %s" % script)
             popen = subprocess.Popen("mayapy %s" % scriptpath,
                                      stdout=subprocess.PIPE,
                                      stderr=subprocess.STDOUT,
@@ -335,8 +359,7 @@ print("__maya_capture_output: %s" % output)
             processes.append(popen)
 
         cmds.warning("Awaiting background processes to finish..")
-        threading.Thread(target=__post).start()
-
+        threading.Thread(target=__monitor).start()
 
 
 CameraOptions = {
@@ -607,6 +630,20 @@ def _solo_animation_layer(layer):
         yield
     finally:
         cmds.animLayer(layer, edit=True, mute=True)
+
+
+@contextlib.contextmanager
+def _muted_animation_layers(layers):
+    state = dict((layer, cmds.animLayer(layer, query=True, mute=True))
+                 for layer in layers)
+    try:
+        for layer in layers:
+            cmds.animLayer(layer, edit=True, mute=True)
+        yield
+
+    finally:
+        for layer, muted in state.items():
+            cmds.animLayer(layer, edit=True, mute=muted)
 
 
 @contextlib.contextmanager
