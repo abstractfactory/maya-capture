@@ -26,6 +26,7 @@ def capture(camera=None,
             width=None,
             height=None,
             filename=None,
+            complete_filename=None,
             start_frame=None,
             end_frame=None,
             frame=None,
@@ -41,8 +42,7 @@ def capture(camera=None,
             camera_options=None,
             display_options=None,
             viewport_options=None,
-            viewport2_options=None,
-            complete_filename=None):
+            viewport2_options=None):
     """Playblast in an independent panel
 
     Arguments:
@@ -51,6 +51,8 @@ def capture(camera=None,
         height (int, optional): Height of output in pixels
         filename (str, optional): Name of output file. If
             none is specified, no files are saved.
+        complete_filename (str, optional): Exact name of output file. Use this
+            to override the output of `filename` so it excludes frame padding.
         start_frame (float, optional): Defaults to current start frame.
         end_frame (float, optional): Defaults to current end frame.
         frame (float or tuple, optional): A single frame or list of frames.
@@ -78,8 +80,6 @@ def capture(camera=None,
             options, using `ViewportOptions`
         viewport2_options (dict, optional): Supplied display
             options, using `Viewport2Options`
-        complete_filename (str, optional): Exact name of output file. Use this
-            to override the output of `filename` so it excludes frame padding.
 
     Example:
         >>> # Launch default capture
@@ -218,7 +218,6 @@ def snap(*args, **kwargs):
     return output
 
 
-
 def wedge(layers,
           async=False,
           on_finished=None,
@@ -242,6 +241,9 @@ def wedge(layers,
 
     if missing:
         raise ValueError("These animation layers was not found: %s" % missing)
+
+    # Do not show player for each finished capture
+    # kwargs["viewer"] = False
 
     if not async:
         # Keep it simple
@@ -273,7 +275,7 @@ def wedge(layers,
                         sys.stdout.write(line)
 
                     if line.startswith("out: "):
-                        sys.stdout.write(line[5:])
+                        print(line[5:])
 
                     # Keep an eye out for when the output is
                     # being printed.
@@ -303,7 +305,6 @@ def wedge(layers,
         cmds.warning("Running wedges in background..")
 
         preset = parse_active_view()
-        # print(json.dumps(preset, indent=4))
         preset.update(parse_active_scene())
         preset.update(kwargs)
 
@@ -320,7 +321,7 @@ standalone.initialize()
 scene = \"{scene}\"
 layer = \"{layer}\"
 preset = json.loads('{preset}')
-print("out: %s" % json.dumps(preset, indent=4))
+print("out: JSON: %s" % json.dumps(preset, indent=4))
 
 print("out: Opening %s" % scene)
 cmds.file("{scene}", open=True, force=True)
@@ -350,7 +351,7 @@ sys.exit()
                 f.write(script)
 
             # print("Running script: %s" % script)
-            popen = subprocess.Popen("mayapy %s" % scriptpath,
+            popen = subprocess.Popen("mayapy -u %s" % scriptpath,
                                      stdout=subprocess.PIPE,
                                      stderr=subprocess.STDOUT,
                                      shell=True)
