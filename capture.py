@@ -304,37 +304,41 @@ def wedge(layers,
 
         cmds.warning("Running wedges in background..")
 
-        preset = parse_active_view()
-        preset.update(parse_active_scene())
-        preset.update(kwargs)
-
         for layer in layers:
             script = """
-print("out: Within subprocess..")
 import os
 import sys
 import json
+import logging
+
+log = logging.getLogger()
+log.info("out: Within subprocess..")
 
 from maya import cmds, standalone
 standalone.initialize()
 
-scene = \"{scene}\"
+assert cmds.objExists("persp")
+
+scene = r\"{scene}\"
 layer = \"{layer}\"
 preset = json.loads('{preset}')
-print("out: JSON: %s" % json.dumps(preset, indent=4))
+log.info("out: JSON: %s" % json.dumps(preset, indent=4))
 
-print("out: Opening %s" % scene)
-cmds.file("{scene}", open=True, force=True)
+log.info("out: Opening %s" % scene)
+cmds.file(scene, open=True, force=True)
 
 import capture
 
 # One file per layer
 preset["filename"] = layer
-preset["offscreen"] = True
+preset["off_screen"] = True
+preset["camera"] = "persp"
 
 output = capture.wedge([layer], **preset)
-print("out: Made it past capture..")
-print("__maya_capture_output: %s" % output[0])
+# output = cmds.playblast()
+# output = capture.capture()
+log.info("out: Made it past capture..")
+log.info("__maya_capture_output: %s" % output[0])
 
 # Safely exit without throwing an exception
 sys.exit()
@@ -346,6 +350,7 @@ sys.exit()
                 paths=json.dumps(sys.path)
             )
 
+            print("Running script: %s" % script)
             scriptpath = os.path.join(tempdir, layer + ".py")
             with open(scriptpath, "w") as f:
                 f.write(script)
@@ -436,7 +441,7 @@ Viewport2Options = {
     "enableTextureMaxRes": False,
     "bumpBakeResolution": 64,
     "colorBakeResolution": 64,
-    "floatingPointRTEnable": True,
+    "floatingPointRTEnable": False,
     "floatingPointRTFormat": 1,
     "gammaCorrectionEnable": False,
     "gammaValue": 2.2,
@@ -726,7 +731,7 @@ def _applied_camera_options(options, panel):
             old_options[opt] = cmds.getAttr(camera + "." + opt)
         except:
             sys.stderr.write("Could not get camera attribute "
-                             "for capture: %s" % opt)
+                             "for capture: %s\n" % opt)
             options.pop(opt)
 
     for opt, value in options.iteritems():
@@ -896,18 +901,29 @@ def _in_standalone():
 #
 # --------------------------------
 
-version = cmds.about(version=True)
-if "2016" in version:
-    Viewport2Options.update({
-        "hwFogAlpha": 1.0,
-        "hwFogFalloff": 0,
-        "hwFogDensity": 0.1,
-        "hwFogEnable": False,
-        "holdOutDetailMode": 1,
-        "hwFogEnd": 100.0,
-        "holdOutMode": True,
-        "hwFogColorR": 0.5,
-        "hwFogColorG": 0.5,
-        "hwFogColorB": 0.5,
-        "hwFogStart": 0.0,
-    })
+if _in_standalone():
+    # This setting doesn't appear to work in mayapy.
+    # Tested in Linux Scientific 6 and Windows 8,
+    # Nvidia Quadro and GeForce 650m
+    Viewport2Options["floatingPointRTEnable"] = False
+
+try:
+    version = cmds.about(version=True)
+    if "2016" in version:
+        Viewport2Options.update({
+            "hwFogAlpha": 1.0,
+            "hwFogFalloff": 0,
+            "hwFogDensity": 0.1,
+            "hwFogEnable": False,
+            "holdOutDetailMode": 1,
+            "hwFogEnd": 100.0,
+            "holdOutMode": True,
+            "hwFogColorR": 0.5,
+            "hwFogColorG": 0.5,
+            "hwFogColorB": 0.5,
+            "hwFogStart": 0.0,
+        })
+except:
+    # about might not exist in mayapy
+    # if not first initialized.
+    pass
