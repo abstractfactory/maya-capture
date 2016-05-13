@@ -58,6 +58,8 @@ def capture(camera=None,
         viewer (bool, optional): Display results in native player
         show_ornaments (bool, optional): Whether or not model view ornaments
             (e.g. axis icon, grid and HUD) should be displayed.
+        sound (str, optional):  Specify the sound node to be used during 
+            playblast. When None (default) no sound will be used.
         isolate (list): List of nodes to isolate upon capturing
         maintain_aspect_ratio (bool, optional): Modify height in order to
             maintain aspect ratio.
@@ -120,6 +122,8 @@ def capture(camera=None,
         playblast_kwargs['completeFilename'] = complete_filename
     if frame:
         playblast_kwargs['frame'] = frame
+    if sound is not None:
+        playblast_kwargs['sound'] = sound
 
     # (#21) Bugfix: `maya.cmds.playblast` suffers from undo bug where it
     # always sets the currentTime to frame 1. By setting currentTime before
@@ -151,7 +155,6 @@ def capture(camera=None,
                     endTime=end_frame,
                     offScreen=off_screen,
                     showOrnaments=show_ornaments,
-                    sound=sound,
                     forceOverwrite=overwrite,
                     filename=filename,
                     widthHeight=[width, height],
