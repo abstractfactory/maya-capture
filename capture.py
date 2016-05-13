@@ -28,6 +28,8 @@ def capture(camera=None,
             quality=100,
             off_screen=False,
             viewer=True,
+            show_ornaments=True,
+            sound=None,
             isolate=None,
             maintain_aspect_ratio=True,
             overwrite=False,
@@ -54,6 +56,10 @@ def capture(camera=None,
         compression (str, optional): Name of compression, defaults to "h264"
         off_screen (bool, optional): Whether or not to playblast off screen
         viewer (bool, optional): Display results in native player
+        show_ornaments (bool, optional): Whether or not model view ornaments
+            (e.g. axis icon, grid and HUD) should be displayed.
+        sound (str, optional):  Specify the sound node to be used during 
+            playblast. When None (default) no sound will be used.
         isolate (list): List of nodes to isolate upon capturing
         maintain_aspect_ratio (bool, optional): Modify height in order to
             maintain aspect ratio.
@@ -116,6 +122,8 @@ def capture(camera=None,
         playblast_kwargs['completeFilename'] = complete_filename
     if frame:
         playblast_kwargs['frame'] = frame
+    if sound is not None:
+        playblast_kwargs['sound'] = sound
 
     # (#21) Bugfix: `maya.cmds.playblast` suffers from undo bug where it
     # always sets the currentTime to frame 1. By setting currentTime before
@@ -146,6 +154,7 @@ def capture(camera=None,
                     startTime=start_frame,
                     endTime=end_frame,
                     offScreen=off_screen,
+                    showOrnaments=show_ornaments,
                     forceOverwrite=overwrite,
                     filename=filename,
                     widthHeight=[width, height],
@@ -421,6 +430,8 @@ def parse_active_scene():
         "format": cmds.optionVar(query="playblastFormat"),
         "off_screen": (True if cmds.optionVar(query="playblastOffscreen")
                        else False),
+        "show_ornaments": (True if cmds.optionVar(query="playblastShowOrnaments")
+                       else False),
         "quality": cmds.optionVar(query="playblastQuality")
     }
 
@@ -463,6 +474,10 @@ def apply_scene(**options):
     if "off_screen" in options:
         cmds.optionVar(
             intValue=["playblastFormat", options["off_screen"]])
+
+    if "show_ornaments" in options:
+        cmds.optionVar(
+            intValue=["show_ornaments", options["show_ornaments"]])
 
     if "quality" in options:
         cmds.optionVar(

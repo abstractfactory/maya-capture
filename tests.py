@@ -241,6 +241,8 @@ def test_parse_active_scene():
         "format": cmds.optionVar(query="playblastFormat"),
         "off_screen": (True if cmds.optionVar(query="playblastOffscreen")
                        else False),
+        "show_ornaments": (True if cmds.optionVar(query="playblastShowOrnaments")
+                       else False),
         "quality": cmds.optionVar(query="playblastQuality")
     }
 
