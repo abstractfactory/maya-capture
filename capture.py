@@ -391,6 +391,16 @@ def parse_view(panel):
 
     # Viewport options
     viewport_options = {}
+    
+    # capture plugin display filters first to ensure we never override 
+    # built-in arguments if ever possible a plugin has similarly named 
+    # plugin display filters (which it shouldn't!)
+    plugins = cmds.pluginDisplayFilter(query=True, listFilters=True)
+    for plugin in plugins:
+        plugin = str(plugin)  # unicode->str for simplicity of the dict
+        state = cmds.modelEditor(panel, query=True, queryPluginObjects=plugin)
+        viewport_options[plugin] = state
+    
     for key in ViewportOptions:
         viewport_options[key] = cmds.modelEditor(
             panel, query=True, **{key: True})
@@ -620,14 +630,22 @@ def _applied_viewport_options(options, panel):
     """Context manager for applying `options` to `panel`"""
 
     options = dict(ViewportOptions, **(options or {}))
-
-    cmds.modelEditor(panel,
-                     edit=True,
-                     allObjects=False,
-                     grid=False,
-                     manipulators=False)
+    
+    # separate the plugin display filter options since they need to
+    # be set differently (see #55)
+    plugins = cmds.pluginDisplayFilter(query=True, listFilters=True)
+    plugin_options = dict()
+    for plugin in plugins:
+        if plugin in options:
+            plugin_options[plugin] = options.pop(plugin)
+    
+    # default options
     cmds.modelEditor(panel, edit=True, **options)
 
+    # plugin display filter options
+    for plugin, state in plugin_options.items():
+        cmds.modelEditor(panel, edit=True, pluginObjects=(plugin, state))
+    
     yield
 
 
