@@ -9,6 +9,7 @@ import sys
 import contextlib
 
 from maya import cmds
+from maya import mel
 
 version_info = (2, 1, 0)
 
@@ -429,6 +430,8 @@ def parse_active_scene():
 
     """
 
+    time_control = mel.eval("$gPlayBackSlider = $gPlayBackSlider")
+
     return {
         "start_frame": cmds.playbackOptions(minTime=True, query=True),
         "end_frame": cmds.playbackOptions(maxTime=True, query=True),
@@ -442,7 +445,8 @@ def parse_active_scene():
                        else False),
         "show_ornaments": (True if cmds.optionVar(query="playblastShowOrnaments")
                        else False),
-        "quality": cmds.optionVar(query="playblastQuality")
+        "quality": cmds.optionVar(query="playblastQuality"),
+        "sound": cmds.timeControl(time_control, q=True, sound=True) or None
     }
 
 
