@@ -9,6 +9,7 @@ import sys
 import contextlib
 
 from maya import cmds
+from maya import mel
 
 version_info = (2, 1, 0)
 
@@ -137,6 +138,7 @@ def capture(camera=None,
         cmds.setFocus(panel)
 
         with contextlib.nested(
+             _disabled_inview_messages(),
              _maintain_camera(panel, camera),
              _applied_viewport_options(viewport_options, panel),
              _applied_camera_options(camera_options, panel),
@@ -429,6 +431,8 @@ def parse_active_scene():
 
     """
 
+    time_control = mel.eval("$gPlayBackSlider = $gPlayBackSlider")
+
     return {
         "start_frame": cmds.playbackOptions(minTime=True, query=True),
         "end_frame": cmds.playbackOptions(maxTime=True, query=True),
@@ -442,7 +446,8 @@ def parse_active_scene():
                        else False),
         "show_ornaments": (True if cmds.optionVar(query="playblastShowOrnaments")
                        else False),
-        "quality": cmds.optionVar(query="playblastQuality")
+        "quality": cmds.optionVar(query="playblastQuality"),
+        "sound": cmds.timeControl(time_control, q=True, sound=True) or None
     }
 
 
@@ -718,6 +723,17 @@ def _maintain_camera(panel, camera):
     finally:
         for camera, renderable in state.iteritems():
             cmds.setAttr(camera + ".rnd", renderable)
+
+
+@contextlib.contextmanager
+def _disabled_inview_messages():
+    """Disable in-view help messages during the context"""
+    original = cmds.optionVar(q="inViewMessageEnable")
+    cmds.optionVar(iv=("inViewMessageEnable", 0))
+    try:
+        yield
+    finally:
+        cmds.optionVar(iv=("inViewMessageEnable", original))
 
 
 def _image_to_clipboard(path):
