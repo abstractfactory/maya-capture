@@ -138,6 +138,7 @@ def capture(camera=None,
         cmds.setFocus(panel)
 
         with contextlib.nested(
+             _disabled_inview_messages(),
              _maintain_camera(panel, camera),
              _applied_viewport_options(viewport_options, panel),
              _applied_camera_options(camera_options, panel),
@@ -722,6 +723,17 @@ def _maintain_camera(panel, camera):
     finally:
         for camera, renderable in state.iteritems():
             cmds.setAttr(camera + ".rnd", renderable)
+
+
+@contextlib.contextmanager
+def _disabled_inview_messages():
+    """Disable in-view help messages during the context"""
+    original = cmds.optionVar(q="inViewMessageEnable")
+    cmds.optionVar(iv=("inViewMessageEnable", 0))
+    try:
+        yield
+    finally:
+        cmds.optionVar(iv=("inViewMessageEnable", original))
 
 
 def _image_to_clipboard(path):
