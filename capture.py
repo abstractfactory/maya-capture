@@ -360,7 +360,7 @@ def parse_active_view():
     # This happens when last focus was on panel
     # that got deleted (e.g. `capture()` then `parse_active_view()`)
     if not panel or "modelPanel" not in panel:
-        raise RuntimeError("No acive model panel found")
+        raise RuntimeError("No active model panel found")
 
     return parse_view(panel)
 
