@@ -352,8 +352,16 @@ def apply_view(panel, **options):
         cmds.setAttr(attr, value)
 
 
-def parse_active_view():
-    """Parse the current settings from the active view"""
+def parse_active_panel():
+    """Parse the active modelPanel.
+
+    Raises
+        RuntimeError: When no active modelPanel an error is raised.
+
+    Returns:
+        str: Name of modelPanel
+
+    """
 
     panel = cmds.getPanel(wf=True)
 
@@ -362,6 +370,12 @@ def parse_active_view():
     if not panel or "modelPanel" not in panel:
         raise RuntimeError("No active model panel found")
 
+    return panel
+
+
+def parse_active_view():
+    """Parse the current settings from the active view"""
+    panel = parse_active_panel()
     return parse_view(panel)
 
 
