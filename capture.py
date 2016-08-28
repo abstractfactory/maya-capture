@@ -363,7 +363,7 @@ def parse_active_panel():
 
     """
 
-    panel = cmds.getPanel(wf=True)
+    panel = cmds.getPanel(withFocus=True)
 
     # This happens when last focus was on panel
     # that got deleted (e.g. `capture()` then `parse_active_view()`)
