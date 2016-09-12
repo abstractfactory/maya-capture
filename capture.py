@@ -110,7 +110,7 @@ def capture(camera=None,
     height = height or cmds.getAttr("defaultResolution.height")
     if maintain_aspect_ratio:
         ratio = cmds.getAttr("defaultResolution.deviceAspectRatio")
-        height = width / ratio
+        height = round(width / ratio)
 
     start_frame = start_frame or cmds.playbackOptions(minTime=True, query=True)
     end_frame = end_frame or cmds.playbackOptions(maxTime=True, query=True)
@@ -352,16 +352,30 @@ def apply_view(panel, **options):
         cmds.setAttr(attr, value)
 
 
-def parse_active_view():
-    """Parse the current settings from the active view"""
+def parse_active_panel():
+    """Parse the active modelPanel.
 
-    panel = cmds.getPanel(wf=True)
+    Raises
+        RuntimeError: When no active modelPanel an error is raised.
+
+    Returns:
+        str: Name of modelPanel
+
+    """
+
+    panel = cmds.getPanel(withFocus=True)
 
     # This happens when last focus was on panel
     # that got deleted (e.g. `capture()` then `parse_active_view()`)
     if not panel or "modelPanel" not in panel:
-        raise RuntimeError("No acive model panel found")
+        raise RuntimeError("No active model panel found")
 
+    return panel
+
+
+def parse_active_view():
+    """Parse the current settings from the active view"""
+    panel = parse_active_panel()
     return parse_view(panel)
 
 

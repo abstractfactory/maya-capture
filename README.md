@@ -196,3 +196,23 @@ scene = capture.parse_scene()
 # Apply previous state
 capture.apply_scene(**scene)
 ```
+
+### Parse and apply active isolate view settings
+
+The following will read the isolated view's nodes for currently
+active panel and apply it for the `capture`.
+
+```python
+import capture
+from maya import cmds
+
+# Get active panel
+panel = capture.parse_active_panel()
+
+# Get isolate view members of the panel
+filter_set = cmds.modelEditor(panel, query=True, viewObjects=True)
+isolate = cmds.sets(filter_set, q=1) if filter_set else None
+
+# Apply isolate view nodes
+capture.capture(isolate=isolate)
+```
