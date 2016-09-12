@@ -110,7 +110,7 @@ def capture(camera=None,
     height = height or cmds.getAttr("defaultResolution.height")
     if maintain_aspect_ratio:
         ratio = cmds.getAttr("defaultResolution.deviceAspectRatio")
-        height = width / ratio
+        height = round(width / ratio)
 
     start_frame = start_frame or cmds.playbackOptions(minTime=True, query=True)
     end_frame = end_frame or cmds.playbackOptions(maxTime=True, query=True)
