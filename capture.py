@@ -112,8 +112,10 @@ def capture(camera=None,
         ratio = cmds.getAttr("defaultResolution.deviceAspectRatio")
         height = round(width / ratio)
 
-    start_frame = start_frame or cmds.playbackOptions(minTime=True, query=True)
-    end_frame = end_frame or cmds.playbackOptions(maxTime=True, query=True)
+    if start_frame is None:
+        start_frame = cmds.playbackOptions(minTime=True, query=True)
+    if end_frame is None:
+        end_frame = cmds.playbackOptions(maxTime=True, query=True)
 
     # We need to wrap `completeFilename`, otherwise even when None is provided
     # it will use filename as the exact name. Only when lacking as argument
@@ -121,7 +123,7 @@ def capture(camera=None,
     playblast_kwargs = dict()
     if complete_filename:
         playblast_kwargs['completeFilename'] = complete_filename
-    if frame:
+    if frame is not None:
         playblast_kwargs['frame'] = frame
     if sound is not None:
         playblast_kwargs['sound'] = sound
