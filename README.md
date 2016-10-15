@@ -4,8 +4,7 @@
 
 Playblast with independent viewport, camera and display options.
 
-- [Issue tracker][issues]
-- [Wiki][]
+- [Optional GUI](https://github.com/BigRoy/maya-capture-gui)
 
 [issues]: https://github.com/mottosso/maya-capture/issues
 [wiki]: https://github.com/mottosso/maya-capture/wiki
