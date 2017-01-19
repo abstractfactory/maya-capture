@@ -11,6 +11,8 @@ import contextlib
 from maya import cmds
 from maya import mel
 
+from vendor.Qt import QtWidgets, QtGui
+
 version_info = (2, 1, 0)
 
 __version__ = "%s.%s.%s" % version_info
@@ -59,7 +61,7 @@ def capture(camera=None,
         viewer (bool, optional): Display results in native player
         show_ornaments (bool, optional): Whether or not model view ornaments
             (e.g. axis icon, grid and HUD) should be displayed.
-        sound (str, optional):  Specify the sound node to be used during 
+        sound (str, optional):  Specify the sound node to be used during
             playblast. When None (default) no sound will be used.
         isolate (list): List of nodes to isolate upon capturing
         maintain_aspect_ratio (bool, optional): Modify height in order to
@@ -409,16 +411,16 @@ def parse_view(panel):
 
     # Viewport options
     viewport_options = {}
-    
-    # capture plugin display filters first to ensure we never override 
-    # built-in arguments if ever possible a plugin has similarly named 
+
+    # capture plugin display filters first to ensure we never override
+    # built-in arguments if ever possible a plugin has similarly named
     # plugin display filters (which it shouldn't!)
     plugins = cmds.pluginDisplayFilter(query=True, listFilters=True)
     for plugin in plugins:
         plugin = str(plugin)  # unicode->str for simplicity of the dict
         state = cmds.modelEditor(panel, query=True, queryPluginObjects=plugin)
         viewport_options[plugin] = state
-    
+
     for key in ViewportOptions:
         viewport_options[key] = cmds.modelEditor(
             panel, query=True, **{key: True})
@@ -460,8 +462,9 @@ def parse_active_scene():
         "format": cmds.optionVar(query="playblastFormat"),
         "off_screen": (True if cmds.optionVar(query="playblastOffscreen")
                        else False),
-        "show_ornaments": (True if cmds.optionVar(query="playblastShowOrnaments")
-                       else False),
+        "show_ornaments": (
+            True if cmds.optionVar(query="playblastShowOrnaments") else False
+        ),
         "quality": cmds.optionVar(query="playblastQuality"),
         "sound": cmds.timeControl(time_control, q=True, sound=True) or None
     }
@@ -651,7 +654,7 @@ def _applied_viewport_options(options, panel):
     """Context manager for applying `options` to `panel`"""
 
     options = dict(ViewportOptions, **(options or {}))
-    
+
     # separate the plugin display filter options since they need to
     # be set differently (see #55)
     plugins = cmds.pluginDisplayFilter(query=True, listFilters=True)
@@ -659,14 +662,14 @@ def _applied_viewport_options(options, panel):
     for plugin in plugins:
         if plugin in options:
             plugin_options[plugin] = options.pop(plugin)
-    
+
     # default options
     cmds.modelEditor(panel, edit=True, **options)
 
     # plugin display filter options
     for plugin, state in plugin_options.items():
         cmds.modelEditor(panel, edit=True, pluginObjects=(plugin, state))
-    
+
     yield
 
 
@@ -757,10 +760,9 @@ def _image_to_clipboard(path):
     if _in_standalone():
         raise Exception("Cannot copy to clipboard from Maya Standalone")
 
-    import PySide.QtGui
-    image = PySide.QtGui.QImage(path)
-    clipboard = PySide.QtGui.QApplication.clipboard()
-    clipboard.setImage(image, mode=PySide.QtGui.QClipboard.Clipboard)
+    image = QtGui.QImage(path)
+    clipboard = QtWidgets.QApplication.clipboard()
+    clipboard.setImage(image, mode=QtGui.QClipboard.Clipboard)
 
 
 def _get_screen_size():
@@ -768,8 +770,7 @@ def _get_screen_size():
     if _in_standalone():
         return [0, 0]
 
-    import PySide.QtGui
-    rect = PySide.QtGui.QDesktopWidget().screenGeometry(-1)
+    rect = QtWidgets.QDesktopWidget().screenGeometry(-1)
     return [rect.width(), rect.height()]
 
 
