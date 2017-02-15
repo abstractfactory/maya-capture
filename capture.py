@@ -11,7 +11,7 @@ import contextlib
 from maya import cmds
 from maya import mel
 
-version_info = (2, 1, 0)
+version_info = (2, 1, 1)
 
 __version__ = "%s.%s.%s" % version_info
 __license__ = "MIT"
@@ -34,6 +34,7 @@ def capture(camera=None,
             isolate=None,
             maintain_aspect_ratio=True,
             overwrite=False,
+            frame_padding=4,
             raw_frame_numbers=False,
             camera_options=None,
             display_options=None,
@@ -67,6 +68,8 @@ def capture(camera=None,
         overwrite (bool, optional): Whether or not to overwrite if file
             already exists. If disabled and file exists and error will be
             raised.
+        frame_padding (bool, optional): Number of zeros used to pad file name
+            for image sequences.
         raw_frame_numbers (bool, optional): Whether or not to use the exact
             frame numbers from the scene or capture to a sequence starting at
             zero. Defaults to False. When set to True `viewer` can't be used
@@ -163,6 +166,7 @@ def capture(camera=None,
                     filename=filename,
                     widthHeight=[width, height],
                     rawFrameNumbers=raw_frame_numbers,
+                    framePadding=frame_padding,
                     **playblast_kwargs)
 
         return output
@@ -266,13 +270,17 @@ ViewportOptions = {
     "selectionHiliteDisplay": False,
     "headsUpDisplay": True,
     # object display
+    "imagePlane": True,
     "nurbsCurves": False,
     "nurbsSurfaces": False,
     "polymeshes": True,
     "subdivSurfaces": False,
+    "planes": True,
     "cameras": False,
+    "controlVertices": True,
     "lights": False,
     "grid": False,
+    "hulls": True,
     "joints": False,
     "ikHandles": False,
     "deformers": False,
