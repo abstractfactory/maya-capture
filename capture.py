@@ -795,8 +795,8 @@ def _in_standalone():
 #
 # --------------------------------
 
-version = cmds.about(version=True)
-if "2016" in version:
+version = mel.eval("getApplicationVersionAsFloat")
+if version > 2015:
     Viewport2Options.update({
         "hwFogAlpha": 1.0,
         "hwFogFalloff": 0,
