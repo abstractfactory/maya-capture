@@ -4,8 +4,14 @@ Playblasting with independent viewport, camera and display options
 
 """
 
+import os
 import re
 import sys
+import json
+import shutil
+import tempfile
+import threading
+import subprocess
 import contextlib
 
 from maya import cmds
@@ -21,6 +27,7 @@ def capture(camera=None,
             width=None,
             height=None,
             filename=None,
+            complete_filename=None,
             start_frame=None,
             end_frame=None,
             frame=None,
@@ -39,8 +46,7 @@ def capture(camera=None,
             camera_options=None,
             display_options=None,
             viewport_options=None,
-            viewport2_options=None,
-            complete_filename=None):
+            viewport2_options=None):
     """Playblast in an independent panel
 
     Arguments:
@@ -49,6 +55,8 @@ def capture(camera=None,
         height (int, optional): Height of output in pixels
         filename (str, optional): Name of output file. If
             none is specified, no files are saved.
+        complete_filename (str, optional): Exact name of output file. Use this
+            to override the output of `filename` so it excludes frame padding.
         start_frame (float, optional): Defaults to current start frame.
         end_frame (float, optional): Defaults to current end frame.
         frame (float or tuple, optional): A single frame or list of frames.
@@ -82,8 +90,6 @@ def capture(camera=None,
             options, using `ViewportOptions`
         viewport2_options (dict, optional): Supplied display
             options, using `Viewport2Options`
-        complete_filename (str, optional): Exact name of output file. Use this
-            to override the output of `filename` so it excludes frame padding.
 
     Example:
         >>> # Launch default capture
@@ -229,6 +235,156 @@ def snap(*args, **kwargs):
     return output
 
 
+def wedge(layers,
+          async=False,
+          on_finished=None,
+          silent=True,
+          **kwargs):
+    """Capture from a camera once per animation layer
+
+    Use this to create wedges of varying settings.
+
+    Arguments:
+        layers (list): Layers, or combinations of layers, to use per capture
+        async (bool): Whether to run asynchronously, or one at a time
+        silent (bool): Whether or not to print output of subprocesses
+        on_finished (callable): Callback for when multiprocess the entire
+            operation is finished (only relevant with `multiprocess`).
+            Outputted files are passed to callback as a list of absolute paths.
+
+    """
+
+    missing = [l for l in layers if not cmds.objExists(l)]
+
+    if missing:
+        raise ValueError("These animation layers was not found: %s" % missing)
+
+    # Do not show player for each finished capture
+    # kwargs["viewer"] = False
+
+    if not async:
+        # Keep it simple
+        output = list()
+        with _muted_animation_layers(layers):
+            for layer in layers:
+                with _solo_animation_layer(layer):
+                    output.append(capture(**kwargs))
+
+        if on_finished is not None:
+            on_finished(output)
+
+        return output
+
+    else:
+        processes = list()
+        tempdir = tempfile.mkdtemp()
+
+        def __monitor():
+            """Threaded callback"""
+            output = list()
+            cmds.warning("Running post-operation..")
+            for process in processes:
+                fname = None
+
+                # Listen for file output
+                for line in iter(process.stdout.readline, b""):
+                    if not silent:
+                        sys.stdout.write(line)
+
+                    if line.startswith("out: "):
+                        print(line[5:])
+
+                    # Keep an eye out for when the output is
+                    # being printed.
+                    if "__maya_capture_output" in line:
+                        fname = line.split("__maya_capture_output: ")[-1]
+                        fname = fname.strip()  # Remove newline
+
+                if fname is None:
+                    sys.stderr.write(
+                        "Process did not output capture output.\n")
+                else:
+                    output.append(fname)  # remove newline at end
+
+            cmds.warning("Done, cleaning up temporary files..")
+            shutil.rmtree(tempdir)
+
+            # Trigger callback
+            if on_finished is not None:
+                cmds.warning("Running callback..")
+                on_finished(output)
+
+        # Export scene
+        cmds.warning("Saving scene..")
+        scene = os.path.join(tempdir, "temp.mb")
+        cmds.file(scene, exportAll=True, type="mayaBinary")
+
+        cmds.warning("Running wedges in background..")
+
+        for layer in layers:
+            script = """
+import os
+import sys
+import json
+import logging
+
+log = logging.getLogger()
+log.info("out: Within subprocess..")
+
+from maya import cmds, standalone
+standalone.initialize()
+
+assert cmds.objExists("persp")
+
+scene = r\"{scene}\"
+layer = \"{layer}\"
+preset = json.loads('{preset}')
+log.info("out: JSON: %s" % json.dumps(preset, indent=4))
+
+log.info("out: Opening %s" % scene)
+cmds.file(scene, open=True, force=True)
+
+import capture
+
+# One file per layer
+preset["filename"] = layer
+preset["off_screen"] = True
+preset["camera"] = "persp"
+
+output = capture.wedge([layer], **preset)
+# output = cmds.playblast()
+# output = capture.capture()
+log.info("out: Made it past capture..")
+log.info("__maya_capture_output: %s" % output[0])
+
+# Safely exit without throwing an exception
+sys.exit()
+"""
+            script = script.format(
+                layer=layer,
+                scene=scene,
+                preset=json.dumps(kwargs),
+                paths=json.dumps(sys.path)
+            )
+
+            print("Running script: %s" % script)
+            scriptpath = os.path.join(tempdir, layer + ".py")
+            with open(scriptpath, "w") as f:
+                f.write(script)
+
+            # print("Running script: %s" % script)
+            popen = subprocess.Popen("mayapy -u %s" % scriptpath,
+                                     stdout=subprocess.PIPE,
+                                     stderr=subprocess.STDOUT,
+                                     shell=True)
+
+            # Track process
+            processes.append(popen)
+
+        cmds.warning("Awaiting background processes to finish..")
+        threading.Thread(target=__monitor).start()
+
+
 CameraOptions = {
     "displayGateMask": False,
     "displayResolution": False,
@@ -306,7 +462,7 @@ Viewport2Options = {
     "enableTextureMaxRes": False,
     "bumpBakeResolution": 64,
     "colorBakeResolution": 64,
-    "floatingPointRTEnable": True,
+    "floatingPointRTEnable": False,
     "floatingPointRTFormat": 1,
     "gammaCorrectionEnable": False,
     "gammaValue": 2.2,
@@ -524,6 +680,33 @@ def apply_scene(**options):
 
 
 @contextlib.contextmanager
+def _solo_animation_layer(layer):
+    """Isolate animation layer"""
+    if not cmds.animLayer(layer, query=True, mute=True):
+        raise ValueError("%s must be muted" % layer)
+
+    try:
+        cmds.animLayer(layer, edit=True, mute=False)
+        yield
+    finally:
+        cmds.animLayer(layer, edit=True, mute=True)
+
+
+@contextlib.contextmanager
+def _muted_animation_layers(layers):
+    state = dict((layer, cmds.animLayer(layer, query=True, mute=True))
+                 for layer in layers)
+    try:
+        for layer in layers:
+            cmds.animLayer(layer, edit=True, mute=True)
+        yield
+
+    finally:
+        for layer, muted in state.items():
+            cmds.animLayer(layer, edit=True, mute=muted)
+
+
+@contextlib.contextmanager
 def _applied_view(panel, **options):
     """Apply options to panel"""
 
@@ -602,7 +785,7 @@ def _applied_camera_options(options, panel):
             old_options[opt] = cmds.getAttr(camera + "." + opt)
         except:
             sys.stderr.write("Could not get camera attribute "
-                             "for capture: %s" % opt)
+                             "for capture: %s\n" % opt)
             options.pop(opt)
 
     for opt, value in options.iteritems():
@@ -791,18 +974,29 @@ def _in_standalone():
 #
 # --------------------------------
 
-version = cmds.about(version=True)
-if "2016" in version:
-    Viewport2Options.update({
-        "hwFogAlpha": 1.0,
-        "hwFogFalloff": 0,
-        "hwFogDensity": 0.1,
-        "hwFogEnable": False,
-        "holdOutDetailMode": 1,
-        "hwFogEnd": 100.0,
-        "holdOutMode": True,
-        "hwFogColorR": 0.5,
-        "hwFogColorG": 0.5,
-        "hwFogColorB": 0.5,
-        "hwFogStart": 0.0,
-    })
+if _in_standalone():
+    # This setting doesn't appear to work in mayapy.
+    # Tested in Linux Scientific 6 and Windows 8,
+    # Nvidia Quadro and GeForce 650m
+    Viewport2Options["floatingPointRTEnable"] = False
+
+try:
+    version = cmds.about(version=True)
+    if "2016" in version:
+        Viewport2Options.update({
+            "hwFogAlpha": 1.0,
+            "hwFogFalloff": 0,
+            "hwFogDensity": 0.1,
+            "hwFogEnable": False,
+            "holdOutDetailMode": 1,
+            "hwFogEnd": 100.0,
+            "holdOutMode": True,
+            "hwFogColorR": 0.5,
+            "hwFogColorG": 0.5,
+            "hwFogColorB": 0.5,
+            "hwFogStart": 0.0,
+        })
+except:
+    # about might not exist in mayapy
+    # if not first initialized.
+    pass
