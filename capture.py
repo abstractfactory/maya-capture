@@ -17,7 +17,7 @@ except ImportError:
     from PySide import QtGui
     QtWidgets = QtGui
 
-version_info = (2, 1, 1)
+version_info = (2, 2, 0)
 
 __version__ = "%s.%s.%s" % version_info
 __license__ = "MIT"
