@@ -11,6 +11,12 @@ import contextlib
 from maya import cmds
 from maya import mel
 
+try:
+    from PySide2 import QtGui, QtWidgets
+except ImportError:
+    from PySide import QtGui
+    from PySide import QtGui as QtWidgets
+
 version_info = (2, 1, 1)
 
 __version__ = "%s.%s.%s" % version_info
@@ -765,10 +771,9 @@ def _image_to_clipboard(path):
     if _in_standalone():
         raise Exception("Cannot copy to clipboard from Maya Standalone")
 
-    import PySide.QtGui
-    image = PySide.QtGui.QImage(path)
-    clipboard = PySide.QtGui.QApplication.clipboard()
-    clipboard.setImage(image, mode=PySide.QtGui.QClipboard.Clipboard)
+    image = QtGui.QImage(path)
+    clipboard = QtWidgets.QApplication.clipboard()
+    clipboard.setImage(image, mode=QtGui.QClipboard.Clipboard)
 
 
 def _get_screen_size():
@@ -776,8 +781,7 @@ def _get_screen_size():
     if _in_standalone():
         return [0, 0]
 
-    import PySide.QtGui
-    rect = PySide.QtGui.QDesktopWidget().screenGeometry(-1)
+    rect = QtWidgets.QDesktopWidget().screenGeometry(-1)
     return [rect.width(), rect.height()]
 
 
