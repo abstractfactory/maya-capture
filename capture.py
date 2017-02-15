@@ -11,7 +11,13 @@ import contextlib
 from maya import cmds
 from maya import mel
 
-version_info = (2, 1, 1)
+try:
+    from PySide2 import QtGui, QtWidgets
+except ImportError:
+    from PySide import QtGui
+    QtWidgets = QtGui
+
+version_info = (2, 2, 0)
 
 __version__ = "%s.%s.%s" % version_info
 __license__ = "MIT"
@@ -765,10 +771,9 @@ def _image_to_clipboard(path):
     if _in_standalone():
         raise Exception("Cannot copy to clipboard from Maya Standalone")
 
-    import PySide.QtGui
-    image = PySide.QtGui.QImage(path)
-    clipboard = PySide.QtGui.QApplication.clipboard()
-    clipboard.setImage(image, mode=PySide.QtGui.QClipboard.Clipboard)
+    image = QtGui.QImage(path)
+    clipboard = QtWidgets.QApplication.clipboard()
+    clipboard.setImage(image, mode=QtGui.QClipboard.Clipboard)
 
 
 def _get_screen_size():
@@ -776,8 +781,7 @@ def _get_screen_size():
     if _in_standalone():
         return [0, 0]
 
-    import PySide.QtGui
-    rect = PySide.QtGui.QDesktopWidget().screenGeometry(-1)
+    rect = QtWidgets.QDesktopWidget().screenGeometry(-1)
     return [rect.width(), rect.height()]
 
 
@@ -791,8 +795,8 @@ def _in_standalone():
 #
 # --------------------------------
 
-version = cmds.about(version=True)
-if "2016" in version:
+version = mel.eval("getApplicationVersionAsFloat")
+if version > 2015:
     Viewport2Options.update({
         "hwFogAlpha": 1.0,
         "hwFogFalloff": 0,
