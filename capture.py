@@ -15,7 +15,7 @@ try:
     from PySide2 import QtGui, QtWidgets
 except ImportError:
     from PySide import QtGui
-    from PySide import QtGui as QtWidgets
+    QtWidgets = QtGui
 
 version_info = (2, 1, 1)
 
