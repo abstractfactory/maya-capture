@@ -62,6 +62,7 @@ def capture(camera=None,
             frames.
         format (str, optional): Name of format, defaults to "qt".
         compression (str, optional): Name of compression, defaults to "H.264"
+        quality (int, optional): The quality of the output, defaults to 100
         off_screen (bool, optional): Whether or not to playblast off screen
         viewer (bool, optional): Display results in native player
         show_ornaments (bool, optional): Whether or not model view ornaments
