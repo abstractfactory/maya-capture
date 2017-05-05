@@ -137,10 +137,21 @@ def capture(camera=None,
     if sound is not None:
         playblast_kwargs['sound'] = sound
 
+    # We need to raise an error when the user gives a custom frame range with
+    # negative frames in combination with raw frame numbers. This will result
+    # in a minimal integer frame number : filename.-2147483648.png for any
+    # negative rendered frame
+    if frame and raw_frame_numbers:
+        negative_frames = [fr for fr in frame if fr < 0]
+        if negative_frames:
+            raise RuntimeError("Negative frame numbers are not supported in "
+                               "the current settings : custom frame range and"
+                               "raw frame numbers")
+
     # (#21) Bugfix: `maya.cmds.playblast` suffers from undo bug where it
     # always sets the currentTime to frame 1. By setting currentTime before
     # the playblast call it'll undo correctly.
-    cmds.currentTime(cmds.currentTime(q=1))
+    cmds.currentTime(cmds.currentTime(query=True))
 
     padding = 10  # Extend panel to accommodate for OS window manager
     with _independent_panel(width=width + padding,
