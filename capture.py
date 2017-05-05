@@ -143,11 +143,10 @@ def capture(camera=None,
     # in a minimal integer frame number : filename.-2147483648.png for any
     # negative rendered frame
     if frame and raw_frame_numbers:
-        negative_frames = [fr for fr in frame if fr < 0]
-        if negative_frames:
-            raise RuntimeError("Negative frame numbers are not supported in "
-                               "the current settings : custom frame range and"
-                               "raw frame numbers")
+        check = frame if isinstance(frame, (list, tuple)) else [frame]
+        if any(f < 0 for f in check):
+            raise RuntimeError("Negative frames are not supported with "
+                               "raw frame numbers and explicit frame numbers")
 
     # (#21) Bugfix: `maya.cmds.playblast` suffers from undo bug where it
     # always sets the currentTime to frame 1. By setting currentTime before
