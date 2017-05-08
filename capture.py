@@ -17,7 +17,7 @@ except ImportError:
     from PySide import QtGui
     QtWidgets = QtGui
 
-version_info = (2, 2, 0)
+version_info = (2, 3, 0)
 
 __version__ = "%s.%s.%s" % version_info
 __license__ = "MIT"
@@ -62,6 +62,7 @@ def capture(camera=None,
             frames.
         format (str, optional): Name of format, defaults to "qt".
         compression (str, optional): Name of compression, defaults to "H.264"
+        quality (int, optional): The quality of the output, defaults to 100
         off_screen (bool, optional): Whether or not to playblast off screen
         viewer (bool, optional): Display results in native player
         show_ornaments (bool, optional): Whether or not model view ornaments
@@ -137,10 +138,20 @@ def capture(camera=None,
     if sound is not None:
         playblast_kwargs['sound'] = sound
 
+    # We need to raise an error when the user gives a custom frame range with
+    # negative frames in combination with raw frame numbers. This will result
+    # in a minimal integer frame number : filename.-2147483648.png for any
+    # negative rendered frame
+    if frame and raw_frame_numbers:
+        check = frame if isinstance(frame, (list, tuple)) else [frame]
+        if any(f < 0 for f in check):
+            raise RuntimeError("Negative frames are not supported with "
+                               "raw frame numbers and explicit frame numbers")
+
     # (#21) Bugfix: `maya.cmds.playblast` suffers from undo bug where it
     # always sets the currentTime to frame 1. By setting currentTime before
     # the playblast call it'll undo correctly.
-    cmds.currentTime(cmds.currentTime(q=1))
+    cmds.currentTime(cmds.currentTime(query=True))
 
     padding = 10  # Extend panel to accommodate for OS window manager
     with _independent_panel(width=width + padding,
