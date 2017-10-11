@@ -104,38 +104,25 @@ def test_apply_parsed_view_all():
     viewport_options = {}
     viewport2_options = {}
 
-    for key, value in capture.CameraOptions.items():
+    for key, value in capture.CAMERA_OPTIONS.items():
         if isinstance(value, bool):
             value = not value
         elif isinstance(value, (int, float)):
             value = value + 1
         else:
-            raise Exception("Unexpected value in CameraOptions: %s=%s"
+            raise Exception("Unexpected value in CAMERA_OPTIONS: %s=%s"
                             % (key, value))
 
-    for key, value in capture.DisplayOptions.items():
+    for key, value in capture.DISPLAY_OPTIONS.items():
         if isinstance(value, bool):
             value = not value
         elif isinstance(value, tuple):
             value = (1, 0, 1)
         else:
-            raise Exception("Unexpected value in DisplayOptions: %s=%s"
+            raise Exception("Unexpected value in DISPLAY_OPTIONS: %s=%s"
                             % (key, value))
 
-    for key, value in capture.ViewportOptions.items():
-        if isinstance(value, bool):
-            value = not value
-        elif isinstance(value, (int, float)):
-            value = value + 1
-        elif isinstance(value, tuple):
-            value = (1, 0, 1)
-        elif isinstance(value, basestring):
-            pass  # Don't bother, for now
-        else:
-            raise Exception("Unexpected value in ViewportOptions: %s=%s"
-                            % (key, value))
-
-    for key, value in capture.Viewport2Options.items():
+    for key, value in capture.VIEWPORT_OPTIONS.items():
         if isinstance(value, bool):
             value = not value
         elif isinstance(value, (int, float)):
@@ -145,14 +132,27 @@ def test_apply_parsed_view_all():
         elif isinstance(value, basestring):
             pass  # Don't bother, for now
         else:
-            raise Exception("Unexpected value in Viewport2Options: %s=%s"
+            raise Exception("Unexpected value in VIEWPORT_OPTIONS: %s=%s"
+                            % (key, value))
+
+    for key, value in capture.VIEWPORT_2_OPTIONS.items():
+        if isinstance(value, bool):
+            value = not value
+        elif isinstance(value, (int, float)):
+            value = value + 1
+        elif isinstance(value, tuple):
+            value = (1, 0, 1)
+        elif isinstance(value, basestring):
+            pass  # Don't bother, for now
+        else:
+            raise Exception("Unexpected value in VIEWPORT_2_OPTIONS: %s=%s"
                             % (key, value))
 
     defaults = {
-        "camera_options": capture.CameraOptions.copy(),
-        "display_options": capture.DisplayOptions.copy(),
-        "viewport_options": capture.ViewportOptions.copy(),
-        "viewport2_options": capture.Viewport2Options.copy(),
+        "camera_options": capture.CAMERA_OPTIONS.copy(),
+        "display_options": capture.DISPLAY_OPTIONS.copy(),
+        "viewport_options": capture.VIEWPORT_OPTIONS.copy(),
+        "viewport2_options": capture.VIEWPORT_2_OPTIONS.copy(),
     }
 
     others = {
