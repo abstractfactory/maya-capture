@@ -17,9 +17,9 @@ except ImportError:
     from PySide import QtGui
     QtWidgets = QtGui
 
-version_info = (2, 3, 0)
+VERSION_INFO = (2, 3, 0)
 
-__version__ = "%s.%s.%s" % version_info
+__version__ = "%s.%s.%s" % VERSION_INFO
 __license__ = "MIT"
 
 
@@ -82,13 +82,13 @@ def capture(camera=None,
             zero. Defaults to False. When set to True `viewer` can't be used
             and will be forced to False.
         camera_options (dict, optional): Supplied camera options,
-            using `CameraOptions`
+            using `CAMERA_OPTIONS`
         display_options (dict, optional): Supplied display
-            options, using `DisplayOptions`
+            options, using `DISPLAY_OPTIONS`
         viewport_options (dict, optional): Supplied viewport
-            options, using `ViewportOptions`
+            options, using `VIEWPORT_OPTIONS`
         viewport2_options (dict, optional): Supplied display
-            options, using `Viewport2Options`
+            options, using `VIEWPORT_2_OPTIONS`
         complete_filename (str, optional): Exact name of output file. Use this
             to override the output of `filename` so it excludes frame padding.
 
@@ -253,7 +253,7 @@ def snap(*args, **kwargs):
     return output
 
 
-CameraOptions = {
+CAMERA_OPTIONS = {
     "displayGateMask": False,
     "displayResolution": False,
     "displayFilmGate": False,
@@ -266,7 +266,7 @@ CameraOptions = {
     "depthOfField": False,
 }
 
-DisplayOptions = {
+DISPLAY_OPTIONS = {
     "displayGradient": True,
     "background": (0.631, 0.631, 0.631),
     "backgroundTop": (0.535, 0.617, 0.702),
@@ -274,9 +274,9 @@ DisplayOptions = {
 }
 
 # These display options require a different command to be queried and set
-_DisplayOptionsRGB = set(["background", "backgroundTop", "backgroundBottom"])
+_DISPLAY_OPTIONS_RGB = set(["background", "backgroundTop", "backgroundBottom"])
 
-ViewportOptions = {
+VIEWPORT_OPTIONS = {
     # renderer
     "rendererName": "vp2Renderer",
     "fogging": False,
@@ -325,7 +325,7 @@ ViewportOptions = {
     "strokes": False
 }
 
-Viewport2Options = {
+VIEWPORT_2_OPTIONS = {
     "consolidateWorld": True,
     "enableTextureMaxRes": False,
     "bumpBakeResolution": 64,
@@ -365,7 +365,7 @@ def apply_view(panel, **options):
     # Display options
     display_options = options.get("display_options", {})
     for key, value in display_options.iteritems():
-        if key in _DisplayOptionsRGB:
+        if key in _DISPLAY_OPTIONS_RGB:
             cmds.displayRGBColor(key, *value)
         else:
             cmds.displayPref(**{key: value})
@@ -428,15 +428,15 @@ def parse_view(panel):
 
     # Display options
     display_options = {}
-    for key in DisplayOptions:
-        if key in _DisplayOptionsRGB:
+    for key in DISPLAY_OPTIONS:
+        if key in _DISPLAY_OPTIONS_RGB:
             display_options[key] = cmds.displayRGBColor(key, query=True)
         else:
             display_options[key] = cmds.displayPref(query=True, **{key: True})
 
     # Camera options
     camera_options = {}
-    for key in CameraOptions:
+    for key in CAMERA_OPTIONS:
         camera_options[key] = cmds.getAttr("{0}.{1}".format(camera, key))
 
     # Viewport options
@@ -451,12 +451,12 @@ def parse_view(panel):
         state = cmds.modelEditor(panel, query=True, queryPluginObjects=plugin)
         viewport_options[plugin] = state
     
-    for key in ViewportOptions:
+    for key in VIEWPORT_OPTIONS:
         viewport_options[key] = cmds.modelEditor(
             panel, query=True, **{key: True})
 
     viewport2_options = {}
-    for key in Viewport2Options.keys():
+    for key in VIEWPORT_2_OPTIONS.keys():
         attr = "hardwareRenderingGlobals.{0}".format(key)
         try:
             viewport2_options[key] = cmds.getAttr(attr)
@@ -618,7 +618,7 @@ def _applied_camera_options(options, panel):
     """Context manager for applying `options` to `camera`"""
 
     camera = cmds.modelPanel(panel, query=True, camera=True)
-    options = dict(CameraOptions, **(options or {}))
+    options = dict(CAMERA_OPTIONS, **(options or {}))
 
     old_options = dict()
     for opt in options.copy():
@@ -644,7 +644,7 @@ def _applied_camera_options(options, panel):
 def _applied_display_options(options):
     """Context manager for setting background color display options."""
 
-    options = dict(DisplayOptions, **(options or {}))
+    options = dict(DISPLAY_OPTIONS, **(options or {}))
 
     colors = ['background', 'backgroundTop', 'backgroundBottom']
     preferences = ['displayGradient']
@@ -682,7 +682,7 @@ def _applied_display_options(options):
 def _applied_viewport_options(options, panel):
     """Context manager for applying `options` to `panel`"""
 
-    options = dict(ViewportOptions, **(options or {}))
+    options = dict(VIEWPORT_OPTIONS, **(options or {}))
     
     # separate the plugin display filter options since they need to
     # be set differently (see #55)
@@ -711,7 +711,7 @@ def _applied_viewport2_options(options):
 
     """
 
-    options = dict(Viewport2Options, **(options or {}))
+    options = dict(VIEWPORT_2_OPTIONS, **(options or {}))
 
     # Store current settings
     original = {}
@@ -813,9 +813,9 @@ def _in_standalone():
 #
 # --------------------------------
 
-version = mel.eval("getApplicationVersionAsFloat")
-if version > 2015:
-    Viewport2Options.update({
+VERSION = mel.eval("getApplicationVersionAsFloat")
+if VERSION > 2015:
+    VIEWPORT_2_OPTIONS.update({
         "hwFogAlpha": 1.0,
         "hwFogFalloff": 0,
         "hwFogDensity": 0.1,
