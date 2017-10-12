@@ -176,22 +176,22 @@ def capture(camera=None,
             _isolated_nodes(isolate, panel),
             _maintained_time()):
 
-                output = cmds.playblast(
-                    compression=compression,
-                    format=format,
-                    percent=100,
-                    quality=quality,
-                    viewer=viewer,
-                    startTime=start_frame,
-                    endTime=end_frame,
-                    offScreen=off_screen,
-                    showOrnaments=show_ornaments,
-                    forceOverwrite=overwrite,
-                    filename=filename,
-                    widthHeight=[width, height],
-                    rawFrameNumbers=raw_frame_numbers,
-                    framePadding=frame_padding,
-                    **playblast_kwargs)
+            output = cmds.playblast(
+                compression=compression,
+                format=format,
+                percent=100,
+                quality=quality,
+                viewer=viewer,
+                startTime=start_frame,
+                endTime=end_frame,
+                offScreen=off_screen,
+                showOrnaments=show_ornaments,
+                forceOverwrite=overwrite,
+                filename=filename,
+                widthHeight=[width, height],
+                rawFrameNumbers=raw_frame_numbers,
+                framePadding=frame_padding,
+                **playblast_kwargs)
 
         return output
 
