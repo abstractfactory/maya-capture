@@ -240,9 +240,9 @@ def snap(*args, **kwargs):
     # perform capture
     output = capture(*args, **kwargs)
 
-    def replace(m):
+    def replace(match):
         """Substitute # with frame number"""
-        return str(int(frame)).zfill(len(m.group()))
+        return str(int(frame)).zfill(len(match.group()))
 
     output = re.sub("#+", replace, output)
 
