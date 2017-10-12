@@ -456,7 +456,7 @@ def parse_view(panel):
             panel, query=True, **{key: True})
 
     viewport2_options = {}
-    for key in VIEWPORT_2_OPTIONS.keys():
+    for key in VIEWPORT_2_OPTIONS:
         attr = "hardwareRenderingGlobals.{0}".format(key)
         try:
             viewport2_options[key] = cmds.getAttr(attr)
