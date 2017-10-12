@@ -67,7 +67,7 @@ def capture(camera=None,
         viewer (bool, optional): Display results in native player
         show_ornaments (bool, optional): Whether or not model view ornaments
             (e.g. axis icon, grid and HUD) should be displayed.
-        sound (str, optional):  Specify the sound node to be used during 
+        sound (str, optional):  Specify the sound node to be used during
             playblast. When None (default) no sound will be used.
         isolate (list): List of nodes to isolate upon capturing
         maintain_aspect_ratio (bool, optional): Modify height in order to
@@ -167,14 +167,14 @@ def capture(camera=None,
         cmds.setFocus(panel)
 
         with contextlib.nested(
-             _disabled_inview_messages(),
-             _maintain_camera(panel, camera),
-             _applied_viewport_options(viewport_options, panel),
-             _applied_camera_options(camera_options, panel),
-             _applied_display_options(display_options),
-             _applied_viewport2_options(viewport2_options),
-             _isolated_nodes(isolate, panel),
-             _maintained_time()):
+            _disabled_inview_messages(),
+            _maintain_camera(panel, camera),
+            _applied_viewport_options(viewport_options, panel),
+            _applied_camera_options(camera_options, panel),
+            _applied_display_options(display_options),
+            _applied_viewport2_options(viewport2_options),
+            _isolated_nodes(isolate, panel),
+            _maintained_time()):
 
                 output = cmds.playblast(
                     compression=compression,
@@ -441,16 +441,16 @@ def parse_view(panel):
 
     # Viewport options
     viewport_options = {}
-    
-    # capture plugin display filters first to ensure we never override 
-    # built-in arguments if ever possible a plugin has similarly named 
+
+    # capture plugin display filters first to ensure we never override
+    # built-in arguments if ever possible a plugin has similarly named
     # plugin display filters (which it shouldn't!)
     plugins = cmds.pluginDisplayFilter(query=True, listFilters=True)
     for plugin in plugins:
         plugin = str(plugin)  # unicode->str for simplicity of the dict
         state = cmds.modelEditor(panel, query=True, queryPluginObjects=plugin)
         viewport_options[plugin] = state
-    
+
     for key in VIEWPORT_OPTIONS:
         viewport_options[key] = cmds.modelEditor(
             panel, query=True, **{key: True})
@@ -493,7 +493,7 @@ def parse_active_scene():
         "off_screen": (True if cmds.optionVar(query="playblastOffscreen")
                        else False),
         "show_ornaments": (True if cmds.optionVar(query="playblastShowOrnaments")
-                       else False),
+                           else False),
         "quality": cmds.optionVar(query="playblastQuality"),
         "sound": cmds.timeControl(time_control, q=True, sound=True) or None
     }
@@ -683,7 +683,7 @@ def _applied_viewport_options(options, panel):
     """Context manager for applying `options` to `panel`"""
 
     options = dict(VIEWPORT_OPTIONS, **(options or {}))
-    
+
     # separate the plugin display filter options since they need to
     # be set differently (see #55)
     plugins = cmds.pluginDisplayFilter(query=True, listFilters=True)
@@ -691,14 +691,14 @@ def _applied_viewport_options(options, panel):
     for plugin in plugins:
         if plugin in options:
             plugin_options[plugin] = options.pop(plugin)
-    
+
     # default options
     cmds.modelEditor(panel, edit=True, **options)
 
     # plugin display filter options
     for plugin, state in plugin_options.items():
         cmds.modelEditor(panel, edit=True, pluginObjects=(plugin, state))
-    
+
     yield
 
 
