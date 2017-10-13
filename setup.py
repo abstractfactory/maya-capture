@@ -3,12 +3,12 @@ from setuptools import setup
 import os
 import imp
 
-mod_path = os.path.abspath('capture.py')
-mod = imp.load_source('capture', mod_path)
-version = mod.__version__
+MOD_PATH = os.path.abspath('capture.py')
+MOD = imp.load_source('capture', MOD_PATH)
+VERSION = MOD.__version__
 
 
-classifiers = [
+CLASSIFIERS = [
     'Development Status :: 3 - Alpha',
     'Intended Audience :: Developers',
     'License :: OSI Approved :: MIT License',
@@ -23,7 +23,7 @@ classifiers = [
 
 setup(
     name='maya-capture',
-    version=version,
+    version=VERSION,
     description='Playblasting in Maya done right"',
     long_description="Playblasting in Maya done right",
     author='Marcus Ottosson',
@@ -32,5 +32,5 @@ setup(
     license="MIT",
     py_modules=["capture"],
     zip_safe=False,
-    classifiers=classifiers
+    classifiers=CLASSIFIERS
 )
