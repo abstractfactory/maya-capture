@@ -322,8 +322,7 @@ ViewportOptions = {
     "handles": False,
     "pivots": False,
     "textures": False,
-    "strokes": False,
-    "motionTrails": False
+    "strokes": False
 }
 
 Viewport2Options = {
@@ -828,4 +827,7 @@ if version > 2015:
         "hwFogColorG": 0.5,
         "hwFogColorB": 0.5,
         "hwFogStart": 0.0,
+    })
+    ViewportOptions.update({
+        "motionTrails": False
     })
