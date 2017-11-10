@@ -828,3 +828,6 @@ if version > 2015:
         "hwFogColorB": 0.5,
         "hwFogStart": 0.0,
     })
+    ViewportOptions.update({
+        "motionTrails": False
+    })
