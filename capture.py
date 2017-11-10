@@ -322,7 +322,8 @@ ViewportOptions = {
     "handles": False,
     "pivots": False,
     "textures": False,
-    "strokes": False
+    "strokes": False,
+    "motionTrails": False
 }
 
 Viewport2Options = {
