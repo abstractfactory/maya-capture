@@ -760,7 +760,12 @@ def _isolated_nodes(nodes, panel):
         cmds.isolateSelect(panel, state=True)
         for obj in nodes:
             cmds.isolateSelect(panel, addDagObject=obj)
-    yield
+
+    try:
+        yield
+    finally:
+        if nodes is not None:
+            cmds.isolateSelect(panel, state=False)
 
 
 @contextlib.contextmanager
