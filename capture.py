@@ -688,18 +688,37 @@ def _applied_viewport_options(options, panel):
     # be set differently (see #55)
     plugins = cmds.pluginDisplayFilter(query=True, listFilters=True)
     plugin_options = dict()
+    old_plugin_options = dict()
     for plugin in plugins:
         if plugin in options:
             plugin_options[plugin] = options.pop(plugin)
-    
-    # default options
+            old_plugin_options[plugin] = cmds.modelEditor(
+                panel, query=True, queryPluginObjects=plugin)
+
+    # get old options
+    old_options = dict()
+    for opt in options.copy():
+        try:
+            old_options[opt] = cmds.modelEditor(
+                panel, query=True, **{opt: True})
+        except:
+            sys.stderr.write(
+                "Could not get viewport attribute for capture: %s" % opt)
+
+    # set options
     cmds.modelEditor(panel, edit=True, **options)
 
     # plugin display filter options
     for plugin, state in plugin_options.items():
         cmds.modelEditor(panel, edit=True, pluginObjects=(plugin, state))
-    
-    yield
+
+    try:
+        yield
+    finally:
+        if old_options:
+            cmds.modelEditor(panel, edit=True, **old_options)
+        for plugin, state in old_plugin_options.items():
+            cmds.modelEditor(panel, edit=True, pluginObjects=(plugin, state))
 
 
 @contextlib.contextmanager
