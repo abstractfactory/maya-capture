@@ -46,7 +46,8 @@ def capture(camera=None,
             display_options=None,
             viewport_options=None,
             viewport2_options=None,
-            complete_filename=None):
+            complete_filename=None,
+            independent_panel=True):
     """Playblast in an independent panel
 
     Arguments:
@@ -91,6 +92,7 @@ def capture(camera=None,
             options, using `Viewport2Options`
         complete_filename (str, optional): Exact name of output file. Use this
             to override the output of `filename` so it excludes frame padding.
+        independent_panel (bool, optional): Whether or not to use a temporary independent panel during capture.
 
     Example:
         >>> # Launch default capture
@@ -161,20 +163,29 @@ def capture(camera=None,
     cmds.currentTime(cmds.currentTime(query=True))
 
     padding = 10  # Extend panel to accommodate for OS window manager
-    with _independent_panel(width=width + padding,
-                            height=height + padding,
-                            off_screen=off_screen) as panel:
+
+    if independent_panel:
+        panel_context = _independent_panel
+    else:
+        @contextlib.contextmanager
+        def _active_panel(**kwargs):
+            yield parse_active_panel()
+        panel_context = _active_panel
+
+    with panel_context(width=width + padding,
+                       height=height + padding,
+                       off_screen=off_screen) as panel:
         cmds.setFocus(panel)
 
         with contextlib.nested(
-             _disabled_inview_messages(),
-             _maintain_camera(panel, camera),
-             _applied_viewport_options(viewport_options, panel),
-             _applied_camera_options(camera_options, panel),
-             _applied_display_options(display_options),
-             _applied_viewport2_options(viewport2_options),
-             _isolated_nodes(isolate, panel),
-             _maintained_time()):
+                _disabled_inview_messages(),
+                _maintain_camera(panel, camera),
+                _applied_viewport_options(viewport_options, panel),
+                _applied_camera_options(camera_options, panel),
+                _applied_display_options(display_options),
+                _applied_viewport2_options(viewport2_options),
+                _isolated_nodes(isolate, panel),
+                _maintained_time()):
 
                 output = cmds.playblast(
                     compression=compression,
