@@ -17,7 +17,7 @@ except ImportError:
     from PySide import QtGui
     QtWidgets = QtGui
 
-version_info = (2, 3, 0)
+version_info = (2, 4, 0)
 
 __version__ = "%s.%s.%s" % version_info
 __license__ = "MIT"
@@ -166,15 +166,14 @@ def capture(camera=None,
                             off_screen=off_screen) as panel:
         cmds.setFocus(panel)
 
-        with contextlib.nested(
-             _disabled_inview_messages(),
-             _maintain_camera(panel, camera),
-             _applied_viewport_options(viewport_options, panel),
-             _applied_camera_options(camera_options, panel),
-             _applied_display_options(display_options),
-             _applied_viewport2_options(viewport2_options),
-             _isolated_nodes(isolate, panel),
-             _maintained_time()):
+        with _disabled_inview_messages(),\
+             _maintain_camera(panel, camera),\
+             _applied_viewport_options(viewport_options, panel),\
+             _applied_camera_options(camera_options, panel),\
+             _applied_display_options(display_options),\
+             _applied_viewport2_options(viewport2_options),\
+             _isolated_nodes(isolate, panel),\
+             _maintained_time():
 
                 output = cmds.playblast(
                     compression=compression,
@@ -364,7 +363,7 @@ def apply_view(panel, **options):
 
     # Display options
     display_options = options.get("display_options", {})
-    for key, value in display_options.iteritems():
+    for key, value in display_options.items():
         if key in _DisplayOptionsRGB:
             cmds.displayRGBColor(key, *value)
         else:
@@ -372,16 +371,16 @@ def apply_view(panel, **options):
 
     # Camera options
     camera_options = options.get("camera_options", {})
-    for key, value in camera_options.iteritems():
+    for key, value in camera_options.items():
         cmds.setAttr("{0}.{1}".format(camera, key), value)
 
     # Viewport options
     viewport_options = options.get("viewport_options", {})
-    for key, value in viewport_options.iteritems():
+    for key, value in viewport_options.items():
         cmds.modelEditor(panel, edit=True, **{key: value})
 
     viewport2_options = options.get("viewport2_options", {})
-    for key, value in viewport2_options.iteritems():
+    for key, value in viewport2_options.items():
         attr = "hardwareRenderingGlobals.{0}".format(key)
         cmds.setAttr(attr, value)
 
@@ -629,14 +628,14 @@ def _applied_camera_options(options, panel):
                              "for capture: %s" % opt)
             options.pop(opt)
 
-    for opt, value in options.iteritems():
+    for opt, value in options.items():
         cmds.setAttr(camera + "." + opt, value)
 
     try:
         yield
     finally:
         if old_options:
-            for opt, value in old_options.iteritems():
+            for opt, value in old_options.items():
                 cmds.setAttr(camera + "." + opt, value)
 
 
@@ -722,14 +721,14 @@ def _applied_viewport2_options(options):
             options.pop(opt)
 
     # Apply settings
-    for opt, value in options.iteritems():
+    for opt, value in options.items():
         cmds.setAttr("hardwareRenderingGlobals." + opt, value)
 
     try:
         yield
     finally:
         # Restore previous settings
-        for opt, value in original.iteritems():
+        for opt, value in original.items():
             cmds.setAttr("hardwareRenderingGlobals." + opt, value)
 
 
@@ -769,7 +768,7 @@ def _maintain_camera(panel, camera):
     try:
         yield
     finally:
-        for camera, renderable in state.iteritems():
+        for camera, renderable in state.items():
             cmds.setAttr(camera + ".rnd", renderable)
 
 
