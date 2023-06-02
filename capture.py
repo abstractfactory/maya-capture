@@ -150,7 +150,7 @@ def capture(camera=None,
     # in a minimal integer frame number : filename.-2147483648.png for any
     # negative rendered frame
     if frame and raw_frame_numbers:
-        check = frame if isinstance(frame, (list, tuple)) else [frame]
+        check = frame if isinstance(frame, (list, tuple, range)) else [frame]
         if any(f < 0 for f in check):
             raise RuntimeError("Negative frames are not supported with "
                                "raw frame numbers and explicit frame numbers")
