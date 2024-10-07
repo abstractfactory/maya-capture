@@ -88,7 +88,8 @@ def capture(camera=None,
         sequence_time (bool, optional): Whether or not to playblast using the
             camera sequencer. Defaults to False. When set to True the value of
             `camera` will be ignored and the cameras from the sequencer will
-            be used instead.
+            be used instead. Additionally, the `start_frame` and `end_frame`
+            values will be in sequence time instead of scene frame numbers.
         camera_options (dict, optional): Supplied camera options,
             using `CameraOptions`
         display_options (dict, optional): Supplied display
@@ -130,10 +131,21 @@ def capture(camera=None,
         ratio = cmds.getAttr("defaultResolution.deviceAspectRatio")
         height = round(width / ratio)
 
-    if start_frame is None:
-        start_frame = cmds.playbackOptions(minTime=True, query=True)
-    if end_frame is None:
-        end_frame = cmds.playbackOptions(maxTime=True, query=True)
+    # Set frame range if no custom frame range specified
+    if sequence_time:
+        # Get frames from the Camera Sequencer
+        sequencer = cmds.sequenceManager(query=True, writableSequencer=True)
+
+        if start_frame is None:
+            start_frame = cmds.getAttr(sequencer + ".minFrame")
+        if end_frame is None:
+            end_frame = cmds.getAttr(sequencer + ".maxFrame")
+    else:
+        # Get frames from the timeline
+        if start_frame is None:
+            start_frame = cmds.playbackOptions(minTime=True, query=True)
+        if end_frame is None:
+            end_frame = cmds.playbackOptions(maxTime=True, query=True)
 
     # (#74) Bugfix: `maya.cmds.playblast` will raise an error when playblasting
     # with `rawFrameNumbers` set to True but no explicit `frames` provided.
