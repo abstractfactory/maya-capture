@@ -45,6 +45,7 @@ def capture(camera=None,
             overwrite=False,
             frame_padding=4,
             raw_frame_numbers=False,
+            sequence_time=False,
             camera_options=None,
             display_options=None,
             viewport_options=None,
@@ -84,6 +85,10 @@ def capture(camera=None,
             frame numbers from the scene or capture to a sequence starting at
             zero. Defaults to False. When set to True `viewer` can't be used
             and will be forced to False.
+        sequence_time (bool, optional): Whether or not to playblast using the
+            camera sequencer. Defaults to False. When set to True the value of
+            `camera` will be ignored and the cameras from the sequencer will
+            be used instead.
         camera_options (dict, optional): Supplied camera options,
             using `CameraOptions`
         display_options (dict, optional): Supplied display
@@ -193,6 +198,7 @@ def capture(camera=None,
                     widthHeight=[width, height],
                     rawFrameNumbers=raw_frame_numbers,
                     framePadding=frame_padding,
+                    sequenceTime=sequence_time,
                     **playblast_kwargs)
 
         return output
