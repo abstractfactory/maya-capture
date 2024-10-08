@@ -7,6 +7,7 @@ Playblasting with independent viewport, camera and display options
 import re
 import sys
 import contextlib
+from collections import defaultdict
 
 from maya import cmds
 from maya import mel
@@ -45,7 +46,7 @@ def capture(camera=None,
             overwrite=False,
             frame_padding=4,
             raw_frame_numbers=False,
-            sequence_time=False,
+            use_camera_sequencer=False,
             camera_options=None,
             display_options=None,
             viewport_options=None,
@@ -85,11 +86,12 @@ def capture(camera=None,
             frame numbers from the scene or capture to a sequence starting at
             zero. Defaults to False. When set to True `viewer` can't be used
             and will be forced to False.
-        sequence_time (bool, optional): Whether or not to playblast using the
-            camera sequencer. Defaults to False. When set to True the value of
-            `camera` will be ignored and the cameras from the sequencer will
-            be used instead. Additionally, the `start_frame` and `end_frame`
-            values will be in sequence time instead of scene frame numbers.
+        use_camera_sequencer (bool, optional): Whether or not to playblast
+            using the camera sequencer. Defaults to False. When set to True the
+            value of `camera` will be ignored and the cameras from the
+            sequencer will be used instead. Additionally, the `start_frame` and
+            `end_frame` values will be in sequence time instead of scene frame
+            numbers.
         camera_options (dict, optional): Supplied camera options,
             using `CameraOptions`
         display_options (dict, optional): Supplied display
@@ -132,7 +134,7 @@ def capture(camera=None,
         height = round(width / ratio)
 
     # Set frame range if no custom frame range specified
-    if sequence_time:
+    if use_camera_sequencer:
         # Get frames from the Camera Sequencer
         sequencer = cmds.sequenceManager(query=True, writableSequencer=True)
 
@@ -189,7 +191,7 @@ def capture(camera=None,
         with _disabled_inview_messages(),\
              _maintain_camera(panel, camera),\
              _applied_viewport_options(viewport_options, panel),\
-             _applied_camera_options(camera_options, panel),\
+             _applied_camera_options(camera_options, panel, use_camera_sequencer),\
              _applied_display_options(display_options),\
              _applied_viewport2_options(viewport2_options),\
              _isolated_nodes(isolate, panel),\
@@ -210,7 +212,7 @@ def capture(camera=None,
                     widthHeight=[width, height],
                     rawFrameNumbers=raw_frame_numbers,
                     framePadding=frame_padding,
-                    sequenceTime=sequence_time,
+                    sequenceTime=use_camera_sequencer,
                     **playblast_kwargs)
 
         return output
@@ -634,30 +636,41 @@ def _independent_panel(width, height, off_screen=False):
 
 
 @contextlib.contextmanager
-def _applied_camera_options(options, panel):
-    """Context manager for applying `options` to `camera`"""
+def _applied_camera_options(options, panel, use_camera_sequencer=False):
+    """Context manager for applying `options` to the cameras used"""
 
-    camera = cmds.modelPanel(panel, query=True, camera=True)
+    if use_camera_sequencer:
+        cameras = [
+            cmds.shot(shot, query=True, currentCamera=True)
+            for shot in cmds.sequenceManager(listShots=True)
+            if not cmds.shot(shot, query=True, mute=True)
+        ]
+    else:
+        cameras = [cmds.modelPanel(panel, query=True, camera=True)]
+    
     options = dict(CameraOptions, **(options or {}))
 
-    old_options = dict()
-    for opt in options.copy():
-        try:
-            old_options[opt] = cmds.getAttr(camera + "." + opt)
-        except:
-            sys.stderr.write("Could not get camera attribute "
-                             "for capture: %s" % opt)
-            options.pop(opt)
+    old_options = defaultdict(dict)
+    for camera in cameras:
+        cam_options = options.copy()
+        for opt in cam_options:
+            try:
+                old_options[camera][opt] = cmds.getAttr(camera + "." + opt)
+            except:
+                sys.stderr.write("Could not get camera attribute "
+                                "for capture: %s.%s" % (camera, opt))
+                cam_options.pop(opt)
 
-    for opt, value in options.items():
-        cmds.setAttr(camera + "." + opt, value)
+        for opt, value in cam_options.items():
+            cmds.setAttr(camera + "." + opt, value)
 
     try:
         yield
     finally:
-        if old_options:
-            for opt, value in old_options.items():
-                cmds.setAttr(camera + "." + opt, value)
+        for camera, orig_options in old_options.items():
+            if orig_options:
+                for opt, value in orig_options.items():
+                    cmds.setAttr(camera + "." + opt, value)
 
 
 @contextlib.contextmanager
