@@ -315,6 +315,7 @@ ViewportOptions = {
     "displayAppearance": 'smoothShaded',
     "selectionHiliteDisplay": False,
     "headsUpDisplay": True,
+    "twoSidedLighting": False,
     # object display
     "imagePlane": True,
     "nurbsCurves": False,
