@@ -315,6 +315,11 @@ ViewportOptions = {
     "displayAppearance": 'smoothShaded',
     "selectionHiliteDisplay": False,
     "headsUpDisplay": True,
+
+    # Since Maya 2024, this setting applies to Viewport 2.0
+    # in place of `singleSidedLighting` below.
+    "twoSidedLighting": False,
+
     # object display
     "imagePlane": True,
     "nurbsCurves": False,
@@ -364,7 +369,10 @@ Viewport2Options = {
     "motionBlurType": 0,
     "multiSampleCount": 8,
     "multiSampleEnable": False,
+
+    # Since Maya 2024, this setting only applies to the Maya Hardware renderer
     "singleSidedLighting": False,
+
     "ssaoEnable": False,
     "ssaoAmount": 1.0,
     "ssaoFilterRadius": 16,
