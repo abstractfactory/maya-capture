@@ -831,6 +831,7 @@ def _maintain_sequence_time_panel():
     # If a panel is set to sequence time, it will grab focus from the 
     # independent panel during the playblast. There's no way to unset it, so we
     # create a dummy panel, set it to sequence time, then delete it.
+    cmds.sequenceManager(query=True, writableSequencer=True)
     original_st_panel = cmds.sequenceManager(query=True, modelPanel=True)
     dummy_panel = cmds.modelPanel(label="dummy_panel")
     cmds.sequenceManager(modelPanel=dummy_panel)
