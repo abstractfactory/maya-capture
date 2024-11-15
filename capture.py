@@ -21,7 +21,7 @@ except ImportError:
         from PySide import QtGui
         QtWidgets = QtGui
 
-version_info = (2, 6, 0)
+version_info = (2, 6, 1)
 
 __version__ = "%s.%s.%s" % version_info
 __license__ = "MIT"
@@ -190,6 +190,7 @@ def capture(camera=None,
 
         with _disabled_inview_messages(),\
              _maintain_camera(panel, camera),\
+             _maintain_sequence_time_panel(),\
              _applied_viewport_options(viewport_options, panel),\
              _applied_camera_options(camera_options, panel, use_camera_sequencer),\
              _applied_display_options(display_options),\
@@ -823,6 +824,26 @@ def _disabled_inview_messages():
         yield
     finally:
         cmds.optionVar(iv=("inViewMessageEnable", original))
+
+
+@contextlib.contextmanager
+def _maintain_sequence_time_panel():
+    # Ensure a sequencer node exists. Without this, Maya may crash when running
+    # sequencer-related commands.
+    cmds.sequenceManager(query=True, writableSequencer=True)
+
+    # If a panel is set to sequence time, it will grab focus from the 
+    # independent panel during the playblast. There's no way to unset it, so we
+    # create a dummy panel, set it to sequence time, then delete it.
+    original_st_panel = cmds.sequenceManager(query=True, modelPanel=True)
+    dummy_panel = cmds.modelPanel(label="dummy_panel")
+    cmds.sequenceManager(modelPanel=dummy_panel)
+    cmds.deleteUI(dummy_panel, panel=True)
+
+    try:
+        yield
+    finally:
+        cmds.sequenceManager(modelPanel=original_st_panel)
 
 
 def _image_to_clipboard(path):
