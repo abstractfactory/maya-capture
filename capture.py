@@ -41,6 +41,7 @@ def capture(camera=None,
             viewer=True,
             show_ornaments=True,
             sound=None,
+            trax_sound=None,
             isolate=None,
             maintain_aspect_ratio=True,
             overwrite=False,
@@ -74,6 +75,8 @@ def capture(camera=None,
             (e.g. axis icon, grid and HUD) should be displayed.
         sound (str, optional):  Specify the sound node to be used during 
             playblast. When None (default) no sound will be used.
+        trax_sound (bool, optional): Specify whether to source audio form
+            the Trax Editor.
         isolate (list): List of nodes to isolate upon capturing
         maintain_aspect_ratio (bool, optional): Modify height in order to
             maintain aspect ratio.
@@ -166,6 +169,8 @@ def capture(camera=None,
         playblast_kwargs['frame'] = frame
     if sound is not None:
         playblast_kwargs['sound'] = sound
+    if trax_sound is not None:
+        playblast_kwargs["useTraxSounds"]
 
     # We need to raise an error when the user gives a custom frame range with
     # negative frames in combination with raw frame numbers. This will result
