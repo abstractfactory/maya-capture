@@ -76,8 +76,11 @@ def capture(
         show_ornaments (bool, optional): Whether or not model view ornaments
             (e.g. axis icon, grid and HUD) should be displayed.
         sound (str, bool, optional):  Specify the sound node to be used
-            during playblast. When None (default) no sound will be used.
-            Setting sound to True will result in the use of all audio files,
+            during playblast.
+            When None (default) no sound node will be used,
+            except for sound that is linked in any present Time Editor Composition
+            Audio clip.
+            Setting `sound=True` will result in the use of all audio nodes,
             reflecting the native "useTraxSounds" playblast option.
         isolate (list): List of nodes to isolate upon capturing
         maintain_aspect_ratio (bool, optional): Modify height in order to
