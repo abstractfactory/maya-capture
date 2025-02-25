@@ -190,6 +190,7 @@ def capture(camera=None,
 
         with _disabled_inview_messages(),\
              _maintain_camera(panel, camera),\
+             _maintain_pan_zoom(camera),\
              _maintain_sequence_time_panel(),\
              _applied_viewport_options(viewport_options, panel),\
              _applied_camera_options(camera_options, panel, use_camera_sequencer),\
@@ -813,6 +814,18 @@ def _maintain_camera(panel, camera):
     finally:
         for camera, renderable in state.items():
             cmds.setAttr(camera + ".rnd", renderable)
+
+
+@contextlib.contextmanager
+def _maintain_pan_zoom(camera):
+    state = cmds.camera(camera, query=True, panZoomEnabled=True)
+    if not cmds.camera(camera, query=True, renderPanZoom=True):
+        cmds.camera(camera, edit=True, panZoomEnabled=False)
+
+    try:
+        yield
+    finally:
+        cmds.camera(camera, edit=True, panZoomEnabled=state)
 
 
 @contextlib.contextmanager
